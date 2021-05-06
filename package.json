@@ -1,0 +1,31 @@
+{
+  "name": "bkmark-slack",
+  "version": "1.0.0",
+  "description": "The slack app for bkmark",
+  "main": "index.js",
+  "scripts": {
+    "ngrok": "ngrok http 3000",
+    "offline": "npx serverless offline --noPrependStageInUrl --stage offline",
+    "watch": "npx nodemon --exec 'npm run offline' -e 'ts'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boristane/bkmark-slack.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/boristane/bkmark-slack/issues"
+  },
+  "homepage": "https://github.com/boristane/bkmark-slack#readme",
+  "dependencies": {
+    "@slack/bolt": "^3.3.0",
+    "@vendia/serverless-express": "^4.3.4"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7",
+    "serverless-offline": "^7.0.0",
+    "typescript": "^4.2.4"
+  }
+}
