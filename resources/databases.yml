@@ -18,6 +18,10 @@ Resources:
           AttributeType: S
         - AttributeName: gsi1SortKey
           AttributeType: S
+        - AttributeName: gsi1PartitionKey
+          AttributeType: S
+        - AttributeName: gsi1SortKey
+          AttributeType: S
       KeySchema:
         - AttributeName: partitionKey
           KeyType: HASH
@@ -35,6 +39,14 @@ Resources:
             - AttributeName: gsi1PartitionKey
               KeyType: HASH
             - AttributeName: gsi1SortKey
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: gsi2
+          KeySchema:
+            - AttributeName: gsi2PartitionKey
+              KeyType: HASH
+            - AttributeName: gsi2SortKey
               KeyType: RANGE
           Projection:
             ProjectionType: ALL

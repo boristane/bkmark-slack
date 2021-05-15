@@ -58,9 +58,125 @@ export async function getUser(userId: string): Promise<IUser> {
   }
 }
 
+async function deleteUser(userId: string): Promise<void> {
+  const { tableName, dynamoDb } = initialise();
+
+  const params = {
+    TableName: tableName,
+    Key: {
+      partitionKey: `user#${userId}`,
+      sortKey: `user#${userId}`,
+    },
+  };
+
+  try {
+    await dynamoDb.delete(params).promise();
+  } catch (e) {
+    const message = "Failed to delete user from dynamo db";
+    logger.error(message, { params, error: e });
+    throw e;
+  }
+}
+
+async function appendOrganisationToUser(userId: string, organisationId: string): Promise<IUser> {
+  const { tableName, dynamoDb } = initialise();
+  const params = {
+    TableName: tableName,
+    Key: {
+      partitionKey: `user#${userId}`,
+      sortKey: `user#${userId}`,
+    },
+    UpdateExpression: `set #data.#organisations = list_append(if_not_exists(#data.#organisations, :emptyArray), :organisationId), #data.updated = :updated, updated = :updated`,
+    ExpressionAttributeNames: {
+      "#data": "data",
+      "#organisations": "organisations",
+    },
+    ExpressionAttributeValues: {
+      ":updated": moment().format(),
+      ":emptyArray": [],
+      ":organisationId": [organisationId],
+    },
+    ReturnValues: "ALL_NEW",
+  };
+  try {
+    return (await dynamoDb.update(params).promise()).Attributes?.data;
+  } catch (e) {
+    const message = "Failed to append an organisations to a user in dynamo db";
+    logger.error(message, { params, error: e });
+    throw e;
+  }
+}
+
+async function appendCollectionToUser(
+  userId: string,
+  organisationId: string,
+  collectionId: string,
+): Promise<IUser> {
+  const { tableName, dynamoDb } = initialise();
+  const params = {
+    TableName: tableName,
+    Key: {
+      partitionKey: `user#${userId}`,
+      sortKey: `user#${userId}`,
+    },
+    UpdateExpression: `set #data.#collections = list_append(if_not_exists(#data.#collections, :emptyArray), :collection), #data.updated = :updated, updated = :updated`,
+    ExpressionAttributeNames: {
+      "#data": "data",
+      "#collections": "collections",
+    },
+    ExpressionAttributeValues: {
+      ":updated": moment().format(),
+      ":emptyArray": [],
+      ":collection": [{ uuid: collectionId, organisationId }],
+    },
+    ReturnValues: "ALL_NEW",
+  };
+  try {
+    return (await dynamoDb.update(params).promise()).Attributes?.data;
+  } catch (e) {
+    const message = "Failed to append a collection to a user in dynamo db";
+    logger.error(message, { params, error: e });
+    throw e;
+  }
+}
+
+async function removeCollectionFromUser(
+  userId: string,
+  index: number,
+): Promise<IUser> {
+  const { tableName, dynamoDb } = initialise();
+  const params = {
+    TableName: tableName,
+    Key: {
+      partitionKey: `user#${userId}`,
+      sortKey: `user#${userId}`,
+    },
+    UpdateExpression: `remove #data.#collections[${index}] set #data.updated = :updated, updated = :updated`,
+    ExpressionAttributeNames: {
+      "#data": "data",
+      "#collections": "collections",
+    },
+    ExpressionAttributeValues: {
+      ":updated": moment().format(),
+    },
+    ReturnValues: "ALL_NEW",
+  };
+  try {
+    return (await dynamoDb.update(params).promise()).Attributes?.data;
+  } catch (e) {
+    const message = "Failed to remove a collection to a user in dynamo db";
+    logger.error(message, { params, error: e });
+    throw e;
+  }
+}
+
 
 
 export default {
   createUser,
   getUser,
+  deleteUser,
+  appendOrganisationToUser,
+  appendCollectionToUser,
+  removeCollectionFromUser,
 }

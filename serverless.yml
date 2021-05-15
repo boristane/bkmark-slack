@@ -86,10 +86,20 @@ functions:
   slack:
     handler: .build/src/index.handler
     description: ${opt:stage} - The Slack event listener
+    memorySize: 1024
     events:
       - http:
           path: /events
           method: post
+
+  command:
+    handler: .build/main.command
+    reservedConcurrency: 10
+    memorySize: 512
+    description: ${opt:stage} - Handle commands
+    events:
+      - sqs:
+          arn: !GetAtt CommandsQueue.Arn
 
   connect-user:
     handler: .build/src/controllers/connect-user.handler

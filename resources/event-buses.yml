@@ -14,6 +14,27 @@ Resources:
           - "${file(./${opt:stage}.yml):usersBusName}-service"
         detail-type:
           - "USER_CREATED"
+          - "USER_DELETED"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: !GetAtt CommandsQueue.Arn
+          Id: !GetAtt CommandsQueue.QueueName     
+          InputPath: "$.detail.data"
+
+  BookmarksEventRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      EventBusName: ${file(./${opt:stage}.yml):bookmarksBusName}
+      Description: "Forward events from the bookmarks service to the search SQS"
+      EventPattern: 
+        source: 
+          - "${file(./${opt:stage}.yml):bookmarksBusName}-service"
+        detail-type:
+          - "USER_INTERNAL_ORGANISATION_JOINED"
+          - "USER_INTERNAL_COLLECTION_JOINED"
+          - "COLLECTION_CREATED"
+          - "COLLECTION_DELETED"
       State: "ENABLED"
       Targets: 
         - 

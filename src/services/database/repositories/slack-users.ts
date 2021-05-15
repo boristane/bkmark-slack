@@ -63,18 +63,18 @@ async function connectUserToSlackUser(teamId: string, slackId: string, uuid: str
       sortKey: `slack-user#${slackId}`,
     },
 
-    UpdateExpression: "SET #d.#userId = :userId, #d.updated = :updated, updated = :updated, #gsi1PartitionKey = :gsi1PartitionKey, #gsi1SortKey = :gsi1SortKey",
+    UpdateExpression: "SET #d.#userId = :userId, #d.updated = :updated, updated = :updated, #gsi2PartitionKey = :gsi2PartitionKey, #gsi2SortKey = :gsi2SortKey",
     ExpressionAttributeNames: {
       "#d": "data",
       "#userId": "userId",
-      "#gsi1PartitionKey": "gsi1PartitionKey",
-      "#gsi1SortKey": "gsi1SortKey",
+      "#gsi2PartitionKey": "gsi2PartitionKey",
+      "#gsi2SortKey": "gsi2SortKey",
     },
     ExpressionAttributeValues: {
       ":userId": uuid,
       ":updated": moment().format(),
-      ":gsi1PartitionKey": `user#${uuid}`,
-      ":gsi1SortKey": `user#${uuid}`,
+      ":gsi2PartitionKey": `user#${uuid}`,
+      ":gsi2SortKey": `user#${uuid}`,
     },
     ReturnValues: "ALL_NEW",
   };

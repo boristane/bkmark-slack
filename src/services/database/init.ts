@@ -11,6 +11,8 @@ export interface IDatabaseItem {
   sortKey: string;
   gsi1PartitionKey?: string;
   gsi1SortKey?: string;
+  gsi2PartitionKey?: string;
+  gsi2SortKey?: string;
   data: Record<string, any>;
   created: string;
   updated: string;
