@@ -4,9 +4,12 @@
   "description": "The slack app for bkmark",
   "main": "index.js",
   "scripts": {
+    "deploy:dev": "sls deploy --stage dev",
+    "deploy:prod": "sls deploy --stage prod",
     "ngrok": "ngrok http 3000",
     "offline": "npx serverless offline --noPrependStageInUrl --stage offline",
-    "watch": "npx nodemon --exec 'npm run offline' -e 'ts'"
+    "watch": "npx nodemon --exec 'npm run offline' -e 'ts'",
+    "build": "npx tsc"
   },
   "repository": {
     "type": "git",
@@ -21,11 +24,19 @@
   "homepage": "https://github.com/boristane/bkmark-slack#readme",
   "dependencies": {
     "@slack/bolt": "^3.3.0",
-    "@vendia/serverless-express": "^4.3.4"
+    "@vendia/serverless-express": "^4.3.4",
+    "aws-lambda": "^1.0.6",
+    "aws-sdk": "^2.907.0",
+    "aws-xray-sdk": "^3.3.3",
+    "dayjs": "^1.10.4",
+    "logger": "git+https://github.com/boristane/logger.git"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.76",
     "nodemon": "^2.0.7",
+    "serverless-domain-manager": "^5.1.0",
     "serverless-offline": "^7.0.0",
+    "serverless-plugin-optimize": "*",
     "typescript": "^4.2.4"
   }
 }

@@ -1,22 +1,105 @@
-service: serverless-bolt-js
+service: bkmark-slack-integration
 frameworkVersion: "2"
 
 plugins:
   - serverless-offline
+  - serverless-plugin-optimize
+  - serverless-domain-manager
+
+resources:
+  - ${file(./resources/databases.yml)}
+  - ${file(./resources/queues.yml)}
+  - ${file(./resources/event-buses.yml)}
+  - ${file(./resources/roles.yml)}
+  - ${file(./resources/api-gateway.yml)}
+
+package:
+  individually: true
+
+custom:
+  logLevel:
+    offline: "debug"
+    dev: "debug"
+    prod: "info"
+  customDomain:
+    domainName: "api.${file(./${opt:stage}.yml):domain}"
+    basePath: 'slack'
+    apiType: rest
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+    endpointType: 'edge'
+    securityPolicy: tls_1_2
+  authorizer: 
+    arn:
+      !ImportValue Auth
+    resultTtlInSeconds: 300
+    name: SharedAuth
+    identitySource: method.request.header.Authorization
+    type: token
 
 provider:
   name: aws
   runtime: nodejs12.x
-  lambdaHashingVersion: 20201221
+  memorySize: 1024
+  stage: ${opt:stage}
+  deploymentBucket:
+    name: boristane-lambdas-deployments-${opt:stage}
+  region: ${file(./${opt:stage}.yml):region}
+  logRetentionInDays: 7
+  versionFunctions: false
+  tracing:
+    apiGateway: true
+    lambda: true
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:GetItem
+            - dynamodb:BatchGetItem
+            - dynamodb:DescribeTable
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:BatchWriteItem
+            - dynamodb:GetShardIterator
+            - dynamodb:DescribeStream
+            - dynamodb:ListStreams
+          Resource:
+            - Fn::GetAtt:
+              - ProjectionTable
+              - Arn
+            - { 'Fn::Join': [':', ['arn:aws:dynamodb', { Ref: 'AWS::Region' }, { Ref: 'AWS::AccountId' }, 'table/${file(./${opt:stage}.yml):tableName}-projection/index/*']] } 
+
   environment:
+    ENV: ${opt:stage}
+    LOG_LEVEL: ${self:custom.logLevel.${self:provider.stage}}
     SLACK_SIGNING_SECRET: ${file(./${opt:stage}.yml):slackSigningSecret}
     SLACK_BOT_TOKEN: ${file(./${opt:stage}.yml):slackBotToken}
+    PROJECTION_TABLE:
+      Ref: ProjectionTable
 
 
 functions:
   slack:
     handler: .build/src/index.handler
+    description: ${opt:stage} - The Slack event listener
     events:
       - http:
-          path: slack/events
+          path: /events
           method: post
+
+  connect-user:
+    handler: .build/src/controllers/connect-user.handler
+    description: ${opt:stage} - Connect a user to Slack
+    events:
+      - http:
+          path: /connect
+          method: post
+          cors: true
+          authorizer: ${self:custom.authorizer}
+          request:
+            schemas:
+              application/json: ${file(./resources/schemas/connect-user.json)}

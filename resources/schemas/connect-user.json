@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "title": "The root schema",
+  "description": "The root schema comprises the entire JSON document.",
+  "required": [
+    "slackId",
+    "teamId"
+  ],
+  "properties": {
+    "token": {
+      "type": "string"
+    },
+    "teamId": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+Resources:
+  EventBus: 
+    Type: AWS::Events::EventBus
+    Properties: 
+        Name: ${file(./${opt:stage}.yml):busName}
+
+  UsersEventRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      EventBusName: ${file(./${opt:stage}.yml):usersBusName}
+      Description: "Forward events from the users service to the slack integration SQS"
+      EventPattern: 
+        source: 
+          - "${file(./${opt:stage}.yml):usersBusName}-service"
+        detail-type:
+          - "USER_CREATED"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: !GetAtt CommandsQueue.Arn
+          Id: !GetAtt CommandsQueue.QueueName     
+          InputPath: "$.detail.data"
+          
