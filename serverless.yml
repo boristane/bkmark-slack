@@ -3,7 +3,7 @@ frameworkVersion: "2"
 
 plugins:
   - serverless-offline
-  - serverless-plugin-optimize
+  # - serverless-plugin-optimize
   - serverless-domain-manager
 
 resources:
@@ -13,8 +13,8 @@ resources:
   - ${file(./resources/roles.yml)}
   - ${file(./resources/api-gateway.yml)}
 
-package:
-  individually: true
+# package:
+#   individually: true
 
 custom:
   logLevel:
@@ -55,6 +55,16 @@ provider:
       statements:
         - Effect: Allow
           Action:
+            - xray:PutTraceSegments
+            - xray:PutTelemetryRecords
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - sts:AssumeRole
+          Resource:
+            - !GetAtt ServiceRole.Arn
+        - Effect: Allow
+          Action:
             - dynamodb:PutItem
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
@@ -80,6 +90,8 @@ provider:
     SLACK_BOT_TOKEN: ${file(./${opt:stage}.yml):slackBotToken}
     PROJECTION_TABLE:
       Ref: ProjectionTable
+    SERVICE_ROLE: !GetAtt ServiceRole.Arn
+    BASE_URL: ${file(./${opt:stage}.yml):baseUrl}
 
 
 functions:

@@ -41,13 +41,17 @@ async function getSlackUser(teamId: string, slackId: string): Promise<ISlackUser
       partitionKey: `slack-team#${teamId}`,
       sortKey: `slack-user#${slackId}`,
     },
+    ProjectionExpression: "#d",
+    ExpressionAttributeNames: {
+      "#d": "data",
+    },
   };
   try {
     const record = await dynamoDb.get(params).promise();
     if (!record.Item) {
       return;
     }
-    return record.Item as ISlackUser;
+    return record.Item.data as ISlackUser;
   } catch (e) {
     logger.error("Error getting the slack user", { params, error: e });
   }

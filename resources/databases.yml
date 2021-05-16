@@ -18,9 +18,9 @@ Resources:
           AttributeType: S
         - AttributeName: gsi1SortKey
           AttributeType: S
-        - AttributeName: gsi1PartitionKey
+        - AttributeName: gsi2PartitionKey
           AttributeType: S
-        - AttributeName: gsi1SortKey
+        - AttributeName: gsi2SortKey
           AttributeType: S
       KeySchema:
         - AttributeName: partitionKey

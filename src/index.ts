@@ -4,6 +4,8 @@ const serverlessExpress = require('@vendia/serverless-express');
 import logger from "logger";
 import database from './services/database/database';
 import { ISlackUser } from './models/slack-user';
+import bookmarkService, { IBookmarkCreateRequest } from "./services/bookmarks";
+
 
 const expressReceiver = new ExpressReceiver({
   signingSecret: process.env.SLACK_SIGNING_SECRET!,
@@ -18,9 +20,51 @@ const app = new App({
 // From https://stackoverflow.com/questions/3809401/what-is-a-good-regular-expression-to-match-a-url
 const regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
-app.message(regex, async ({ context, say }) => {
-  // RegExp matches are inside of context.matches
+app.message(regex, async ({ message, context, say, client }) => {
+  logger.info("Processing the message", { context, message });
   const url = context.matches[0];
+
+  //@ts-ignore
+  const slackUser = await database.getSlackUser(message.team, message.user);
+  if (!slackUser) {
+    // TODO add blocks here to ask the user to login
+    await client.chat.postEphemeral({
+      channel: message.channel,
+      text: "We could not find a slack user",
+      //@ts-ignore
+      user: message.user,
+    });
+    return;
+  }
+
+  //@ts-ignore
+  const collection = await database.getCollectionByChannel(message.team, message.channel);
+
+  if (!collection) {
+    // TODO add blocks here to ask the user to connect the slack channel to Bkmark
+    await client.chat.postEphemeral({
+      channel: message.channel,
+      text: "We could not find the collection",
+      //@ts-ignore
+      user: message.user,
+    });
+    return;
+  }
+
+
+  const requestData: IBookmarkCreateRequest = {
+    url: url,
+    userId: slackUser.userId!,
+    collectionId: collection.uuid,
+    organisationId: collection.organisationId,
+    origin: "SLACK",
+  }
+
+  try {
+    await bookmarkService.requestBookmarkCreate(requestData);
+  } catch (error) {
+    logger.error("Received an error from the bookmarks service", { error, data: requestData });
+  }
 
   await say(`Here's the url ${url}`);
 });

@@ -57,6 +57,39 @@ export async function getCollection(organisationId: string, uuid: string): Promi
   }
 }
 
+async function getCollectionByChannel(teamId: string, channelId: string): Promise<ICollection | undefined> {
+  const { tableName, dynamoDb } = initialise();
+  const params = {
+    TableName: tableName,
+    IndexName: "gsi3",
+    KeyConditionExpression: "#gsi1PartitionKey = :gsi1PartitionKey AND #gsi1SortKey = :gsi1SortKey",
+    ExpressionAttributeNames: {
+      "#gsi1PartitionKey": "gsi1PartitionKey",
+      "#gsi1SortKey": "gsi1SortKey",
+      "#d": "data",
+    },
+    ExpressionAttributeValues: {
+      ":gsi1PartitionKey": `team#${teamId}`,
+      ":gsi1SortKey": `channel#${channelId}`,
+    },
+    ProjectionExpression: "#d",
+    ScanIndexForward: false,
+    Limit: 1,
+  };
+
+  try {
+    const records = await dynamoDb.query(params).promise();
+    if (records.Items) {
+      const [collection] = records.Items.map((item) => item.data) as ICollection[];
+      return collection;
+    } else {
+      throw new Error("Collection not found");
+    }
+  } catch (e) {
+    logger.error("Error getting the collection by username and uuid", { params, error: e });
+  }
+}
+
 async function deleteCollection(organisationId: string, collectionId: string): Promise<void> {
   const { tableName, dynamoDb } = initialise();
 
@@ -123,4 +156,5 @@ export default {
   getCollection,
   deleteCollection,
   connectChannelToConnection,
+  getCollectionByChannel,
 }

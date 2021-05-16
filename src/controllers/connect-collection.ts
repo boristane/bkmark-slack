@@ -21,7 +21,7 @@ async function handlerFunction(event: APIGatewayEvent) {
       return failure({ message: "Forbidden" }, 403);
     }
 
-    const team = await slackApp.client.team.info();
+    const { team } = await slackApp.client.team.info() as any;
 
     await database.connectChannelToConnection(organisationId, collectionId, team.id as string, domain, channelId);
 

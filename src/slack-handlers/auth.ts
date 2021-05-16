@@ -5,9 +5,10 @@ import database from "../services/database/database";
 export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any, say: SayFn) {
   const { user: slackId } = event;
 
-  const team = await client.team.info();
+  const { team } = await client.team.info();
   const user = await database.getSlackUser(team.id, slackId);
-  if(!user) {
+
+  if (!user) {
     try {
       await say({
         blocks: [
@@ -38,7 +39,7 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
                 },
                 "value": "log_in_button_click",
                 "action_id": "log_in_button_click",
-                "url":  `http://localhost:8080/integrations/connect-slack?team=${team.id}&name=${team.name}&id=${slackId}`
+                "url": `http://localhost:8080/integrations/connect-slack?team=${team.id}&name=${team.name}&id=${slackId}`
               }
             ]
           }
