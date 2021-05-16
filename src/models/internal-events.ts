@@ -14,3 +14,9 @@ export interface ISlackInstallationCreated {
   data: Record<string, any>;
   type: string;
 }
+
+export interface ISlackUninstalled {
+  uuid: string
+  data: Record<string, any>;
+  type: string;
+}
