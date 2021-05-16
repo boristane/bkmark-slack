@@ -1,7 +1,6 @@
 import { Callback, Context, DynamoDBRecord, DynamoDBStreamEvent } from "aws-lambda";
 import { Converter } from "aws-sdk/clients/dynamodb";
 import logger from "logger";
-import { eventType } from "./handlers/handlers";
 import eventBus from "./services/event-bus";
 
 export async function fanout(event: DynamoDBStreamEvent, context: Context, callback: Callback) {

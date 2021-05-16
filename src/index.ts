@@ -1,12 +1,36 @@
-import { App, ExpressReceiver } from '@slack/bolt';
+import { App, AwsLambdaReceiver, ExpressReceiver, Installation, InstallationQuery } from '@slack/bolt';
 import { handleAppHomeOpened } from './slack-handlers/auth';
-const serverlessExpress = require('@vendia/serverless-express');
 import logger from "logger";
 import database from './services/database/database';
 import { ISlackUser } from './models/slack-user';
 import bookmarkService, { IBookmarkCreateRequest } from "./services/bookmarks";
 import internalStore, { InternalEventTypes } from './services/internal-store';
 import { ISlackInstallationCreated } from './models/internal-events';
+
+const installationStore = {
+  storeInstallation: async (installation: Installation) => {
+    if (installation.isEnterpriseInstall) {
+      await database.createSlackInstallation(installation.enterprise?.id!, installation);
+    } else {
+      await database.createSlackInstallation(installation.team?.id!, installation);
+    }
+    const event: ISlackInstallationCreated = {
+      uuid: installation.enterprise?.id || installation.team?.id!,
+      data: { installation },
+      type: InternalEventTypes.slackInstallationCreated,
+    }
+    await internalStore.createInternalEvent(event);
+  },
+  fetchInstallation: async (installQuery: InstallationQuery<boolean>) => {
+    if (installQuery.isEnterpriseInstall && installQuery.enterpriseId !== undefined) {
+      return await database.getSlackInstallation(installQuery.enterpriseId);
+    }
+    if (installQuery.teamId !== undefined) {
+      return await database.getSlackInstallation(installQuery.teamId);
+    }
+    throw new Error('Failed fetching installation');
+  },
+};
 
 
 const expressReceiver = new ExpressReceiver({
@@ -24,36 +48,53 @@ const expressReceiver = new ExpressReceiver({
     "team:read",
     "links:read",
   ],
-  installationStore: {
-    storeInstallation: async (installation) => {
-      if (installation.isEnterpriseInstall) {
-        await database.createSlackInstallation(installation.enterprise?.id!, installation);
-      } else {
-        await database.createSlackInstallation(installation.team?.id!, installation);
-      }
-      const event: ISlackInstallationCreated = {
-        uuid: installation.enterprise?.id || installation.team?.id!,
-        data: { installation },
-        type: InternalEventTypes.slackInstallationCreated,
-      }
-      await internalStore.createInternalEvent(event);
-    },
-    fetchInstallation: async (installQuery) => {
-      if (installQuery.isEnterpriseInstall && installQuery.enterpriseId !== undefined) {
-        return await database.getSlackInstallation(installQuery.enterpriseId);
-      }
-      if (installQuery.teamId !== undefined) {
-        return await database.getSlackInstallation(installQuery.teamId);
-      }
-      throw new Error('Failed fetching installation');
-    },
-  },
+  installationStore,
   processBeforeResponse: true
 });
 
+const awsServerlessExpress = require('aws-serverless-express');
+const server = awsServerlessExpress.createServer(expressReceiver.app);
+module.exports.oauthHandler = (event: any, context: any) => {
+  awsServerlessExpress.proxy(server, event, context);
+}
+
+// Slack Event Handler
+const eventReceiver = new AwsLambdaReceiver({
+  signingSecret: process.env.SLACK_SIGNING_SECRET!,
+});
 const app = new App({
   // token: process.env.SLACK_BOT_TOKEN,
-  receiver: expressReceiver
+  receiver: eventReceiver,
+  authorize: async (source) => {
+    try {
+      const queryResult = await installationStore.fetchInstallation(source);
+      if (queryResult === undefined) {
+        throw new Error('Failed fetching data from the Installation Store');
+      }
+
+      const authorizeResult: Record<string, any> = {};
+      authorizeResult.userToken = queryResult.user.token;
+      if (queryResult.team !== undefined) {
+        authorizeResult.teamId = queryResult.team.id;
+      } else if (source.teamId !== undefined) {
+        authorizeResult.teamId = source.teamId;
+      }
+      if (queryResult.enterprise !== undefined) {
+        authorizeResult.enterpriseId = queryResult.enterprise.id;
+      } else if (source.enterpriseId !== undefined) {
+        authorizeResult.enterpriseId = source.enterpriseId;
+      }
+      if (queryResult.bot !== undefined) {
+        authorizeResult.botToken = queryResult.bot.token;
+        authorizeResult.botId = queryResult.bot.id;
+        authorizeResult.botUserId = queryResult.bot.userId;
+      }
+      return authorizeResult;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  },
+  processBeforeResponse: true
 });
 
 // From https://stackoverflow.com/questions/3809401/what-is-a-good-regular-expression-to-match-a-url
@@ -158,6 +199,4 @@ app.action('log_in_button_click', async ({ body, ack, say }) => {
   }
 });
 
-module.exports.handler = serverlessExpress({
-  app: expressReceiver.app
-});
+module.exports.eventHandler = eventReceiver.toHandler();

@@ -118,7 +118,7 @@ provider:
 
 functions:
   slack:
-    handler: .build/src/index.handler
+    handler: .build/src/index.eventHandler
     description: ${opt:stage} - The Slack event listener
     memorySize: 512
     events:
@@ -126,6 +126,18 @@ functions:
           path: /events
           method: post
 
+  slack-auth-flow:
+    handler: .build/src/index.oauthHandler
+    description: ${opt:stage} - The Slack auth flow
+    memorySize: 512
+    events:
+      - http:
+          path: /install
+          method: get
+      - http:
+          path: /oauth_redirect
+          method: get
+      
   command:
     handler: .build/main.command
     reservedConcurrency: 10
