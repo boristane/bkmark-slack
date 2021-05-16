@@ -6,7 +6,8 @@ import { failure, handleError, success } from "../utils/http-responses";
 import { App } from "@slack/bolt";
 
 const slackApp = new App({
-  token: process.env.SLACK_BOT_TOKEN,
+  clientId: process.env.SLACK_CLIENT_ID,
+  clientSecret: process.env.SLACK_CLIENT_SECRET,
 });
 
 async function handlerFunction(event: APIGatewayEvent) {

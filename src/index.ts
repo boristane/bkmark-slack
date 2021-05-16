@@ -5,15 +5,54 @@ import logger from "logger";
 import database from './services/database/database';
 import { ISlackUser } from './models/slack-user';
 import bookmarkService, { IBookmarkCreateRequest } from "./services/bookmarks";
+import internalStore, { InternalEventTypes } from './services/internal-store';
+import { ISlackInstallationCreated } from './models/internal-events';
 
 
 const expressReceiver = new ExpressReceiver({
   signingSecret: process.env.SLACK_SIGNING_SECRET!,
+  clientId: process.env.SLACK_CLIENT_ID,
+  clientSecret: process.env.SLACK_CLIENT_SECRET,
+  stateSecret: process.env.SLACK_STATE_SECRET,
+  scopes: [
+    "app_mentions:read",
+    "channels:history",
+    "chat:write",
+    "groups:history",
+    "im:history",
+    "mpim:history",
+    "team:read",
+    "links:read",
+  ],
+  installationStore: {
+    storeInstallation: async (installation) => {
+      if (installation.isEnterpriseInstall) {
+        await database.createSlackInstallation(installation.enterprise?.id!, installation);
+      } else {
+        await database.createSlackInstallation(installation.team?.id!, installation);
+      }
+      const event: ISlackInstallationCreated = {
+        uuid: installation.enterprise?.id || installation.team?.id!,
+        data: { installation },
+        type: InternalEventTypes.slackInstallationCreated,
+      }
+      await internalStore.createInternalEvent(event);
+    },
+    fetchInstallation: async (installQuery) => {
+      if (installQuery.isEnterpriseInstall && installQuery.enterpriseId !== undefined) {
+        return await database.getSlackInstallation(installQuery.enterpriseId);
+      }
+      if (installQuery.teamId !== undefined) {
+        return await database.getSlackInstallation(installQuery.teamId);
+      }
+      throw new Error('Failed fetching installation');
+    },
+  },
   processBeforeResponse: true
 });
 
 const app = new App({
-  token: process.env.SLACK_BOT_TOKEN,
+  // token: process.env.SLACK_BOT_TOKEN,
   receiver: expressReceiver
 });
 
@@ -71,6 +110,30 @@ app.message(regex, async ({ message, context, say, client }) => {
 
 app.event<'app_home_opened'>('app_home_opened', async ({ event, client, say }) => {
   logger.info("Received a app_home_opened event", event);
+  // await client.views.publish({
+  //   // Use the user ID associated with the event
+  //   user_id: event.user,
+  //   view: {
+  //     // Home tabs must be enabled in your app configuration page under "App Home"
+  //     "type": "home",
+  //     "blocks": [
+  //       {
+  //         "type": "section",
+  //         "text": {
+  //           "type": "mrkdwn",
+  //           "text": "*Welcome home, <@" + event.user + "> :house:*"
+  //         }
+  //       },
+  //       {
+  //         "type": "section",
+  //         "text": {
+  //           "type": "mrkdwn",
+  //           "text": "Learn how home tabs can be more useul and interactive <https://api.slack.com/surfaces/tabs/using|*in the documentation*>."
+  //         }
+  //       }
+  //     ]
+  //   }
+  // });
   await handleAppHomeOpened(event, client, say);
 });
 

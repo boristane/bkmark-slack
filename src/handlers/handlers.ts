@@ -8,6 +8,7 @@ import {
 } from "./users";
 import { IEventMessage } from "../models/events";
 import { deleteCollection } from "./collections";
+import { InternalEventTypes } from "../services/internal-store";
 
 export async function handleMessage(message: IEventMessage): Promise<boolean> {
   const data = message.data;
@@ -19,6 +20,10 @@ export async function handleMessage(message: IEventMessage): Promise<boolean> {
       break;
     case eventType.userInternalOrganisationJoined:
       res = await addUserToOrganisation(data);
+      break;
+    case InternalEventTypes.slackInstallationCreated:
+      res = true;
+      logger.info("Here is the god damn event", data);
       break;
     case eventType.collectionCreated:
     case eventType.userInternalCollectionJoined:

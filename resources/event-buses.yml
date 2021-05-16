@@ -4,6 +4,23 @@ Resources:
     Properties: 
         Name: ${file(./${opt:stage}.yml):busName}
 
+  EventRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      EventBusName: !GetAtt EventBus.Name
+      Description: "Forward events from the internal event store to SQS"
+      EventPattern: 
+        source: 
+          - "${file(./${opt:stage}.yml):busName}-service"
+        detail-type:
+          - "SLACK_INSTALLATION_CREATED"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: !GetAtt CommandsQueue.Arn
+          Id: !GetAtt CommandsQueue.QueueName     
+          InputPath: "$.detail.data"
+
   UsersEventRule: 
     Type: AWS::Events::Rule
     Properties: 

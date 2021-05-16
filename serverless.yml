@@ -50,9 +50,26 @@ provider:
   tracing:
     apiGateway: true
     lambda: true
+  logs:
+    restApi:
+      accessLogging: false
+      executionLogging: false
   iam:
     role:
       statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:DescribeTable
+            - dynamodb:GetRecords
+            - dynamodb:GetShardIterator
+            - dynamodb:DescribeStream
+            - dynamodb:ListStreams
+            - dynamodb:Query
+          Resource:
+            - Fn::GetAtt:
+                - InternalEventsTable
+                - Arn
         - Effect: Allow
           Action:
             - xray:PutTraceSegments
@@ -87,9 +104,14 @@ provider:
     ENV: ${opt:stage}
     LOG_LEVEL: ${self:custom.logLevel.${self:provider.stage}}
     SLACK_SIGNING_SECRET: ${file(./${opt:stage}.yml):slackSigningSecret}
+    SLACK_CLIENT_ID: ${file(./${opt:stage}.yml):slackClientId}
+    SLACK_CLIENT_SECRET: ${file(./${opt:stage}.yml):slackClientSecret}
+    SLACK_STATE_SECRET: ${file(./${opt:stage}.yml):slackStateSecret}
     SLACK_BOT_TOKEN: ${file(./${opt:stage}.yml):slackBotToken}
     PROJECTION_TABLE:
       Ref: ProjectionTable
+    INTERNAL_EVENTS_TABLE:
+      Ref: InternalEventsTable
     SERVICE_ROLE: !GetAtt ServiceRole.Arn
     BASE_URL: ${file(./${opt:stage}.yml):baseUrl}
 
@@ -98,7 +120,7 @@ functions:
   slack:
     handler: .build/src/index.handler
     description: ${opt:stage} - The Slack event listener
-    memorySize: 1024
+    memorySize: 512
     events:
       - http:
           path: /events
@@ -125,3 +147,18 @@ functions:
           request:
             schemas:
               application/json: ${file(./resources/schemas/connect-user.json)}
+
+  fanout:
+    handler: .build/main.fanout
+    environment:
+      EVENT_BUS_NAME: ${file(./${opt:stage}.yml):busName}
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 10
+          startingPosition: LATEST
+          maximumRetryAttempts: 2
+          arn:
+            Fn::GetAtt:
+              - InternalEventsTable
+              - StreamArn

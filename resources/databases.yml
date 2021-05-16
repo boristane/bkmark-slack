@@ -64,10 +64,19 @@ Resources:
           AttributeType: N
         - AttributeName: uuid
           AttributeType: S
+        - AttributeName: type
+          AttributeType: S
       KeySchema:
         - AttributeName: uuid
           KeyType: HASH
         - AttributeName: timestamp
           KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: type
+          KeySchema:
+            - AttributeName: type
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       StreamSpecification:
         StreamViewType: NEW_IMAGE
