@@ -5,6 +5,7 @@ import internalStore, { InternalEventTypes } from './services/internal-store';
 import { ISlackInstallationCreated } from './models/internal-events';
 import { handleMessage } from './slack-handlers/message';
 import { handleUninstallApp } from './slack-handlers/uninstall';
+import logger from "logger";
 
 const installationStore = {
   storeInstallation: async (installation: Installation) => {
@@ -27,6 +28,7 @@ const installationStore = {
     if (installQuery.teamId !== undefined) {
       return await database.getSlackInstallation(installQuery.teamId);
     }
+    logger.error("There was an error fetching the installation", { installQuery });
     throw new Error('Failed fetching installation');
   },
 };
@@ -62,8 +64,7 @@ const eventReceiver = new AwsLambdaReceiver({
   signingSecret: process.env.SLACK_SIGNING_SECRET!,
 });
 
-export const app = new App({
-  // token: process.env.SLACK_BOT_TOKEN,
+export const slackApp = new App({
   receiver: eventReceiver,
   authorize: async (source) => {
     try {
@@ -91,7 +92,8 @@ export const app = new App({
       }
       return authorizeResult;
     } catch (error) {
-      throw new Error(error.message);
+      logger.error("There was an error autorizing a slack event listener action", { source, error });
+      throw error;
     }
   },
   processBeforeResponse: true
@@ -100,19 +102,19 @@ export const app = new App({
 // From https://stackoverflow.com/questions/3809401/what-is-a-good-regular-expression-to-match-a-url
 const regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
-app.message(regex, async ({ message, context, say, client }) => {
+slackApp.message(regex, async ({ message, context, say, client }) => {
   await handleMessage(message, context, say, client);
 });
 
-app.event<'app_home_opened'>('app_home_opened', async ({ event, client, say }) => {
+slackApp.event<'app_home_opened'>('app_home_opened', async ({ event, client, say }) => {
   await handleAppHomeOpened(event, client, say);
 });
 
-app.action('log_in_button_click', async ({ body, ack, say }) => {
+slackApp.action('log_in_button_click', async ({ body, ack, say }) => {
   await handleLoginButtonClick(body, ack, say);
 });
 
-app.event<'app_uninstalled'>('app_uninstalled', async ({ event }) => {
+slackApp.event<'app_uninstalled'>('app_uninstalled', async ({ event }) => {
   await handleUninstallApp(event);
 });
 

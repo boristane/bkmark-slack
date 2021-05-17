@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "title": "The root schema",
+  "description": "The root schema comprises the entire JSON document.",
+  "required": [
+    "organisationId",
+    "collectionId",
+    "domain",
+    "channelId"
+  ],
+  "properties": {
+    "organisationId": {
+      "type": "string"
+    },
+    "collectionId": {
+      "type": "string"
+    },
+    "domain": {
+      "type": "string"
+    },
+    "channelId": {
+      "type": "string"
+    }
+  }
+}

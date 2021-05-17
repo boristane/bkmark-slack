@@ -110,7 +110,7 @@ async function deleteCollection(organisationId: string, collectionId: string): P
   }
 }
 
-async function connectChannelToConnection(organisationId: string, collectionId: string, teamId: string, domain: string, channelId: string) {
+async function connectChannelToCollection(organisationId: string, collectionId: string, teamId: string, domain: string, channelId: string) {
   const { tableName, dynamoDb } = initialise();
 
   const params = {
@@ -155,6 +155,6 @@ export default {
   createCollection,
   getCollection,
   deleteCollection,
-  connectChannelToConnection,
+  connectChannelToCollection,
   getCollectionByChannel,
 }

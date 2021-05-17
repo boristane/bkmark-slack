@@ -30,3 +30,25 @@ Resources:
                 aws:SourceArn: !GetAtt UsersEventRule.Arn
             Principal:  
               Service: "events.amazonaws.com"
+          - 
+            Action: 
+              - "SQS:SendMessage" 
+              - "SQS:ReceiveMessage"
+            Effect: "Allow"
+            Resource: !GetAtt CommandsQueue.Arn
+            Condition: 
+              ArnEquals:
+                aws:SourceArn: !GetAtt EventRule.Arn
+            Principal:  
+              Service: "events.amazonaws.com"
+          - 
+            Action: 
+              - "SQS:SendMessage" 
+              - "SQS:ReceiveMessage"
+            Effect: "Allow"
+            Resource: !GetAtt CommandsQueue.Arn
+            Condition: 
+              ArnEquals:
+                aws:SourceArn: !GetAtt BookmarksEventRule.Arn
+            Principal:  
+              Service: "events.amazonaws.com"

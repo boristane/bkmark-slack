@@ -1,5 +1,6 @@
 import { AppHomeOpenedEvent, SayFn, SlackAction } from "@slack/bolt";
 import logger from "logger";
+import { ISlackTeam } from "../models/slack-team";
 import { ISlackUser } from "../models/slack-user";
 import database from "../services/database/database";
 
@@ -11,6 +12,24 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
 
   if (!user) {
     try {
+
+      let slackTeam = await database.getSlackTeam(team.id);
+      if (!slackTeam) {
+        slackTeam = {
+          id: team.id,
+          domain: team.domain,
+        };
+        await database.createSlackTeam(slackTeam);
+      }
+      
+      const slackUser: ISlackUser = {
+        slackId,
+        teamId: team.id,
+        domain: team.domain,
+      };
+
+      await database.createSlackUser(slackUser);
+
       await say({
         blocks: [
           {
@@ -47,34 +66,45 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
         ],
         text: ``
       });
-    }
-    catch (error) {
+    } catch (error) {
       logger.error("There was a problem prompting a slack user to log-in", error);
     }
     return;
   }
 
   // TODO what to do when the user is logged in
-  await say(`You're logged in ma boi <@${slackId}>`);
+  try {
+    const result = await client.views.publish({
+      user_id: slackId,
+      view: {
+        "type": "home",
+        "blocks": [
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Welcome home, <@" + slackId + "> :house:*"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "Learn how home tabs can be more useful and interactive <https://api.slack.com/surfaces/tabs/using|*in the documentation*>."
+            }
+          }
+        ]
+      }
+    });
+
+    console.log(result);
+  }
+  catch (error) {
+    console.error(error);
+  }
 }
 
-export async function handleLoginButtonClick( body: SlackAction, ack: Function, say: SayFn) {
+export async function handleLoginButtonClick(body: SlackAction, ack: Function, say: SayFn) {
   await ack();
   logger.info("Received a log_in_button_click action", body);
-  try {
-
-    if (!body.team?.id) {
-      throw new Error("Received a log_in_button_click event with no team attached. This needs immediate attention");
-    }
-    const slackUser: ISlackUser = {
-      slackId: body.user.id,
-      teamId: body.team?.id,
-      domain: body.team?.domain,
-    };
-
-    await database.createSlackUser(slackUser);
-    await say(`<@${body.user.id}> saved you in the database`);
-  } catch (error) {
-    logger.error("There was an error processingt the app_home_opened", { error, body });
-  }
 }

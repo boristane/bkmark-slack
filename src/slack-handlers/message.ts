@@ -3,22 +3,24 @@ import logger from "logger";
 import { Context, SayFn, MessageEvent } from "@slack/bolt";
 import { WebClient } from "@slack/web-api"
 import database from "../services/database/database";
+import { ISlackUser } from "../models/slack-user";
 
 export async function handleMessage(message: MessageEvent, context: Context, say: SayFn, client: WebClient) {
   logger.info("Processing the message", { context, message });
   const url = context.matches[0];
 
   //@ts-ignore
-  const slackUser = await database.getSlackUser(message.team, message.user);
+  let slackUser = await database.getSlackUser(message.team, message.user);
   if (!slackUser) {
-    // TODO add blocks here to ask the user to login
-    await client.chat.postEphemeral({
-      channel: message.channel,
-      text: "We could not find a slack user",
+    const { team } = await client.team.info() as any;
+    slackUser = {
       //@ts-ignore
-      user: message.user,
-    });
-    return;
+      slackId: message.user,
+      teamId: team.id,
+      domain: team.domain,
+    };
+
+    await database.createSlackUser(slackUser);
   }
 
   //@ts-ignore

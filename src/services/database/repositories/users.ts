@@ -2,7 +2,6 @@ import { IDatabaseItem, initialise } from "../init";
 import moment from "dayjs";
 import logger from "logger";
 import { IUser } from "../../../models/user";
-import { DocumentClient } from "aws-sdk/clients/dynamodb";
 
 async function createUser(user: IUser): Promise<void> {
   const { tableName, dynamoDb } = initialise();

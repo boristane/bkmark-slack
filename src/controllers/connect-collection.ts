@@ -3,12 +3,7 @@ import { Context, Callback, APIGatewayEvent } from "aws-lambda";
 import database from "../services/database/database";
 import { wrapper } from "../utils/controllers-helpers";
 import { failure, handleError, success } from "../utils/http-responses";
-import { App } from "@slack/bolt";
 
-const slackApp = new App({
-  clientId: process.env.SLACK_CLIENT_ID,
-  clientSecret: process.env.SLACK_CLIENT_SECRET,
-});
 
 async function handlerFunction(event: APIGatewayEvent) {
   try {
@@ -22,9 +17,13 @@ async function handlerFunction(event: APIGatewayEvent) {
       return failure({ message: "Forbidden" }, 403);
     }
 
-    const { team } = await slackApp.client.team.info() as any;
+    const team = await database.getSlackTeamByDomain(domain);
+    if(!team) {
+      logger.error("User is trying to connect a collection to a slack team which doesn't exist yet");
+      return failure({ message: "Forbidden" }, 403);
+    }
 
-    await database.connectChannelToConnection(organisationId, collectionId, team.id as string, domain, channelId);
+    await database.connectChannelToCollection(organisationId, collectionId, team.id, domain, channelId);
 
     const data = {
       message: "Channel connected",

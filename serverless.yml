@@ -99,6 +99,13 @@ provider:
               - ProjectionTable
               - Arn
             - { 'Fn::Join': [':', ['arn:aws:dynamodb', { Ref: 'AWS::Region' }, { Ref: 'AWS::AccountId' }, 'table/${file(./${opt:stage}.yml):tableName}-projection/index/*']] } 
+        - Effect: Allow
+          Action:
+            - events:PutEvents
+          Resource:
+            - Fn::GetAtt:
+                - EventBus
+                - Arn
 
   environment:
     ENV: ${opt:stage}
@@ -107,7 +114,6 @@ provider:
     SLACK_CLIENT_ID: ${file(./${opt:stage}.yml):slackClientId}
     SLACK_CLIENT_SECRET: ${file(./${opt:stage}.yml):slackClientSecret}
     SLACK_STATE_SECRET: ${file(./${opt:stage}.yml):slackStateSecret}
-    SLACK_BOT_TOKEN: ${file(./${opt:stage}.yml):slackBotToken}
     PROJECTION_TABLE:
       Ref: ProjectionTable
     INTERNAL_EVENTS_TABLE:
@@ -139,7 +145,7 @@ functions:
           method: get
       
   command:
-    handler: .build/main.command
+    handler: .build/src/main.command
     reservedConcurrency: 10
     memorySize: 512
     description: ${opt:stage} - Handle commands
@@ -152,7 +158,20 @@ functions:
     description: ${opt:stage} - Connect a user to Slack
     events:
       - http:
-          path: /connect
+          path: /connect/user
+          method: post
+          cors: true
+          authorizer: ${self:custom.authorizer}
+          request:
+            schemas:
+              application/json: ${file(./resources/schemas/connect-user.json)}
+
+  connect-collection:
+    handler: .build/src/controllers/connect-collection.handler
+    description: ${opt:stage} - Connect a collection to a Slack channel
+    events:
+      - http:
+          path: /connect/collection
           method: post
           cors: true
           authorizer: ${self:custom.authorizer}
@@ -161,7 +180,7 @@ functions:
               application/json: ${file(./resources/schemas/connect-user.json)}
 
   fanout:
-    handler: .build/main.fanout
+    handler: .build/src/main.fanout
     environment:
       EVENT_BUS_NAME: ${file(./${opt:stage}.yml):busName}
     events:
