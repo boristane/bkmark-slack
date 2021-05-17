@@ -86,7 +86,7 @@ async function getCollectionByChannel(teamId: string, channelId: string): Promis
       throw new Error("Collection not found");
     }
   } catch (e) {
-    logger.error("Error getting the collection by username and uuid", { params, error: e });
+    logger.error("Error getting the collection by teamId and channelId", { params, error: e });
   }
 }
 

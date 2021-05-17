@@ -4,6 +4,8 @@ import { Context, SayFn, MessageEvent } from "@slack/bolt";
 import { WebClient } from "@slack/web-api"
 import database from "../services/database/database";
 import { ISlackUser } from "../models/slack-user";
+import { IBookmarkCreateRequestSent } from "../models/internal-events";
+import internalStore, { InternalEventTypes } from "../services/internal-store";
 
 export async function handleMessage(message: MessageEvent, context: Context, say: SayFn, client: WebClient) {
   logger.info("Processing the message", { context, message });
@@ -37,7 +39,6 @@ export async function handleMessage(message: MessageEvent, context: Context, say
     return;
   }
 
-
   const requestData: IBookmarkCreateRequest = {
     url: url,
     userId: slackUser.userId!,
@@ -48,6 +49,12 @@ export async function handleMessage(message: MessageEvent, context: Context, say
 
   try {
     await bookmarkService.requestBookmarkCreate(requestData);
+    const e: IBookmarkCreateRequestSent = {
+      uuid: `organisation#${collection.organisationId}#collection#${collection.uuid}`,
+      data: { requestData },
+      type: InternalEventTypes.bookmarkCreateRequestSent,
+    }
+    await internalStore.createInternalEvent(e);
   } catch (error) {
     logger.error("Received an error from the bookmarks service", { error, data: requestData });
   }

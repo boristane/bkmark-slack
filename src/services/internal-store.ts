@@ -43,6 +43,9 @@ async function createInternalEvent(data: Record<string, any>): Promise<void> {
 
 export enum InternalEventTypes {
   slackInstallationCreated = "SLACK_INSTALLATION_CREATED",
+  bookmarkCreateRequestSent = "BOOKMARK_CREATE_REQUEST_SENT",
+  slackTeamCreated = "SLACK_TEAM_CREATED",
+  slackUserCreated = "SLACK_USER_CREATED",
 }
 
 export default {

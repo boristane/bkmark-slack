@@ -3,6 +3,7 @@ import logger from "logger";
 import { ISlackTeam } from "../models/slack-team";
 import { ISlackUser } from "../models/slack-user";
 import database from "../services/database/database";
+import internalStore, { InternalEventTypes } from "../services/internal-store";
 
 export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any, say: SayFn) {
   const { user: slackId } = event;
@@ -20,8 +21,14 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
           domain: team.domain,
         };
         await database.createSlackTeam(slackTeam);
+        const e = {
+          uuid: team.id,
+          data: { slackTeam },
+          type: InternalEventTypes.slackTeamCreated,
+        }
+        await internalStore.createInternalEvent(e);
       }
-      
+
       const slackUser: ISlackUser = {
         slackId,
         teamId: team.id,
@@ -29,6 +36,13 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
       };
 
       await database.createSlackUser(slackUser);
+
+      const e = {
+        uuid: slackId,
+        data: { slackUser },
+        type: InternalEventTypes.slackUserCreated,
+      }
+      await internalStore.createInternalEvent(e);
 
       await say({
         blocks: [

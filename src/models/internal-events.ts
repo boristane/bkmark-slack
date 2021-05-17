@@ -20,3 +20,9 @@ export interface ISlackUninstalled {
   data: Record<string, any>;
   type: string;
 }
+
+export interface IBookmarkCreateRequestSent {
+  uuid: string
+  data: Record<string, any>;
+  type: string;
+}
