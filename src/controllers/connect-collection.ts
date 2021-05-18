@@ -10,7 +10,7 @@ async function handlerFunction(event: APIGatewayEvent) {
     const body = JSON.parse(event.body!);
     const userData = event.requestContext.authorizer!;
     const { uuid } = userData;
-    const { organisationId, collectionId, domain, channelId } = body;
+    const { organisationId, collectionId, domain, channelId, slackUrl } = body;
 
     const user = await database.getUser(uuid);
     if (!user.collections.some(col => col.uuid === collectionId && col.organisationId === organisationId)) {
@@ -23,7 +23,7 @@ async function handlerFunction(event: APIGatewayEvent) {
       return failure({ message: "Forbidden" }, 403);
     }
 
-    await database.connectChannelToCollection(organisationId, collectionId, team.id, domain, channelId);
+    await database.connectChannelToCollection(organisationId, collectionId, team.id, domain, channelId, slackUrl);
 
     const data = {
       message: "Channel connected",

@@ -4,6 +4,7 @@ export interface ICollection {
   domain?: string;
   teamId?: string;
   channelId?: string;
+  slackUrl?: string;
   created?: string;
   updated?: string;
 }

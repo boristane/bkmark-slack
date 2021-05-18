@@ -179,6 +179,16 @@ functions:
             schemas:
               application/json: ${file(./resources/schemas/connect-user.json)}
 
+  get-collections:
+    handler: .build/src/controllers/get-collections.handler
+    description: ${opt:stage} - Get the slack linked collection
+    events:
+      - http:
+          path: /collection
+          method: get
+          cors: true
+          authorizer: ${self:custom.authorizer}
+
   fanout:
     handler: .build/src/main.fanout
     environment:

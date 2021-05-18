@@ -110,7 +110,7 @@ async function deleteCollection(organisationId: string, collectionId: string): P
   }
 }
 
-async function connectChannelToCollection(organisationId: string, collectionId: string, teamId: string, domain: string, channelId: string) {
+async function connectChannelToCollection(organisationId: string, collectionId: string, teamId: string, domain: string, channelId: string, slackUrl: string) {
   const { tableName, dynamoDb } = initialise();
 
   const params = {
@@ -120,12 +120,13 @@ async function connectChannelToCollection(organisationId: string, collectionId: 
       sortKey: `collection#${collectionId}`,
     },
 
-    UpdateExpression: "SET #d.#domain = :domain, #d.#teamId = :teamId, #d.#channelId = :channelId, #d.updated = :updated, updated = :updated, #gsi1PartitionKey = :gsi1PartitionKey, #gsi1SortKey = :gsi1SortKey, #gsi2PartitionKey = :gsi2PartitionKey, #gsi2SortKey = :gsi2SortKey",
+    UpdateExpression: "SET #d.#domain = :domain, #d.#teamId = :teamId, #d.#channelId = :channelId, #d.#slackUrl = :slackUrl, #d.updated = :updated, updated = :updated, #gsi1PartitionKey = :gsi1PartitionKey, #gsi1SortKey = :gsi1SortKey, #gsi2PartitionKey = :gsi2PartitionKey, #gsi2SortKey = :gsi2SortKey",
     ExpressionAttributeNames: {
       "#d": "data",
       "#channelId": "channelId",
       "#domain": "domain",
       "#teamId": "teamId",
+      "#slackUrl": "slackUrl",
       "#gsi1PartitionKey": "gsi1PartitionKey",
       "#gsi1SortKey": "gsi1SortKey",
       "#gsi2PartitionKey": "gsi2PartitionKey",
@@ -135,6 +136,7 @@ async function connectChannelToCollection(organisationId: string, collectionId: 
       ":channelId": channelId,
       ":domain": domain,
       ":teamId": teamId,
+      ":slackUrl": slackUrl,
       ":updated": moment().format(),
       ":gsi1PartitionKey": `team#${teamId}`,
       ":gsi1SortKey": `channel#${channelId}`,
