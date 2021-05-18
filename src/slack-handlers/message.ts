@@ -23,6 +23,14 @@ export async function handleMessage(message: MessageEvent, context: Context, say
     };
 
     await database.createSlackUser(slackUser);
+    // TODO add blocks here to ask the user to connect connect their slack and bkmark accounts
+    await client.chat.postEphemeral({
+      channel: message.channel,
+      text: "We could not find the user",
+      //@ts-ignore
+      user: message.user,
+    });
+    return;
   }
 
   //@ts-ignore

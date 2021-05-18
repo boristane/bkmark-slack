@@ -9,7 +9,7 @@ async function handlerFunction(event: APIGatewayEvent) {
     const body = JSON.parse(event.body!);
     const userData = event.requestContext.authorizer!;
     const { uuid } = userData;
-    const { slackId, teamId, organisationId } = body;
+    const { slackId, teamId } = body;
 
     await database.connectUserToSlackUser(teamId, slackId, uuid);
 

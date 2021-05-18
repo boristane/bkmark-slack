@@ -44,6 +44,8 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
       }
       await internalStore.createInternalEvent(e);
 
+      const loginUrl = `http://localhost:8080/login?slackTeam=${team.id}&slackUser=${slackId}`;
+
       await say({
         blocks: [
           {
@@ -73,7 +75,7 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
                 },
                 "value": "log_in_button_click",
                 "action_id": "log_in_button_click",
-                "url": `http://localhost:8080/integrations/connect-slack?team=${team.id}&name=${team.name}&id=${slackId}`
+                "url": encodeURI(loginUrl),
               }
             ]
           }

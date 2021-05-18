@@ -3,7 +3,6 @@ export interface ISlackUser {
   slackId: string;
   teamId: string;
   domain?: string;
-  organosationId?: string;
   created?: string;
   updated?: string;
 }
