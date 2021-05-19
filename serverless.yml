@@ -177,7 +177,7 @@ functions:
           authorizer: ${self:custom.authorizer}
           request:
             schemas:
-              application/json: ${file(./resources/schemas/connect-user.json)}
+              application/json: ${file(./resources/schemas/connect-collection.json)}
 
   get-collections:
     handler: .build/src/controllers/get-collections.handler
