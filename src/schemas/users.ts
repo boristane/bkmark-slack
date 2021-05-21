@@ -23,8 +23,3 @@ export interface IAddUserToCollectionRequest {
 export interface IRemoveCollectionFromUsersRequest {
   collection: { uuid: string; organisationId: string, userId: string; users: string[]; };
 }
-
-export interface IDeleteCollectionRequest {
-  collection: { uuid: string; organisationId: string, userId: string; users: string[]; };
-}
-

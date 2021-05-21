@@ -7,7 +7,7 @@ import {
   removeCollectionFromUsers,
 } from "./users";
 import { IEventMessage } from "../models/events";
-import { deleteCollection } from "./collections";
+import { createCollection, deleteCollection } from "./collections";
 import { InternalEventTypes } from "../services/internal-store";
 
 export async function handleMessage(message: IEventMessage): Promise<boolean> {
@@ -26,6 +26,11 @@ export async function handleMessage(message: IEventMessage): Promise<boolean> {
       logger.info("Here is the god damn event", data);
       break;
     case eventType.collectionCreated:
+      res = await createCollection(data);
+      if(!res) {
+        break;
+      }
+      res = await addUserToCollection(data);
     case eventType.userInternalCollectionJoined:
       res = await addUserToCollection(data);
       break;

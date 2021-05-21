@@ -3,7 +3,7 @@ frameworkVersion: "2"
 
 plugins:
   - serverless-offline
-  # - serverless-plugin-optimize
+  - serverless-plugin-optimize
   - serverless-domain-manager
 
 resources:
@@ -13,8 +13,8 @@ resources:
   - ${file(./resources/roles.yml)}
   - ${file(./resources/api-gateway.yml)}
 
-# package:
-#   individually: true
+package:
+  individually: true
 
 custom:
   logLevel:
@@ -179,8 +179,8 @@ functions:
             schemas:
               application/json: ${file(./resources/schemas/connect-collection.json)}
 
-  get-collections:
-    handler: .build/src/controllers/get-collections.handler
+  get-collection:
+    handler: .build/src/controllers/get-collection.handler
     description: ${opt:stage} - Get the slack linked collection
     events:
       - http:

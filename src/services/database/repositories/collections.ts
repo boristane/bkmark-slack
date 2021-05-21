@@ -31,7 +31,7 @@ async function createCollection(collection: ICollection): Promise<void> {
   }
 }
 
-export async function getCollection(organisationId: string, uuid: string): Promise<ICollection> {
+export async function getCollection(organisationId: string, uuid: string): Promise<ICollection | undefined> {
   const { tableName, dynamoDb } = initialise();
   const params = {
     TableName: tableName,
@@ -48,12 +48,9 @@ export async function getCollection(organisationId: string, uuid: string): Promi
     const record = await dynamoDb.get(params).promise();
     if (record.Item) {
       return record.Item.data as ICollection;
-    } else {
-      throw new Error("Collection not found");
     }
   } catch (e) {
     logger.error("Error getting the user", { params, error: e });
-    throw e;
   }
 }
 
@@ -61,7 +58,7 @@ async function getCollectionByChannel(teamId: string, channelId: string): Promis
   const { tableName, dynamoDb } = initialise();
   const params = {
     TableName: tableName,
-    IndexName: "gsi3",
+    IndexName: "gsi1",
     KeyConditionExpression: "#gsi1PartitionKey = :gsi1PartitionKey AND #gsi1SortKey = :gsi1SortKey",
     ExpressionAttributeNames: {
       "#gsi1PartitionKey": "gsi1PartitionKey",

@@ -57,7 +57,7 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
             "accessory": {
               "type": "image",
               "image_url": "https://d1apvrodb6vxub.cloudfront.net/og-image.png",
-              "alt_text": "alt text for image"
+              "alt_text": "image"
             }
           },
           {

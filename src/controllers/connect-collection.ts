@@ -18,9 +18,9 @@ async function handlerFunction(event: APIGatewayEvent) {
     }
 
     const team = await database.getSlackTeamByDomain(domain);
-    if(!team) {
-      logger.error("User is trying to connect a collection to a slack team which doesn't exist yet");
-      return failure({ message: "Forbidden" }, 403);
+    if (!team) {
+      logger.error("User is trying to connect a collection to a slack team which doesn't exist yet", { uuid, body });
+      return failure({ message: "Please install the Bkmark Slack App in your Slack workspace first." }, 403);
     }
 
     await database.connectChannelToCollection(organisationId, collectionId, team.id, domain, channelId, slackUrl);

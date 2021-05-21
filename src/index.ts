@@ -114,6 +114,21 @@ slackApp.action('log_in_button_click', async ({ body, ack, say }) => {
   await handleLoginButtonClick(body, ack, say);
 });
 
+slackApp.action('connect_slack_instructions_click', async ({ body, ack, say }) => {
+  await ack();
+  logger.info("Received a connect_slack_instructions_click action", body);
+});
+
+slackApp.action('contact_support_click', async ({ body, ack, say }) => {
+  await ack();
+  logger.info("Received a contact_support_click action", body);
+});
+
+slackApp.action('view_saved_link_click', async ({ body, ack, say }) => {
+  await ack();
+  logger.info("Received a view_saved_link_click action", body);
+});
+
 slackApp.event<'app_uninstalled'>('app_uninstalled', async ({ event }) => {
   await handleUninstallApp(event);
 });

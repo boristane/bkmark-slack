@@ -25,7 +25,7 @@ async function getCollectionssss(event: APIGatewayEvent): Promise<IHTTPResponse>
     const data = {
       message: "Got the collection.",
       data: {
-        organisationId: organisationId,
+        organisationId,
         collection,
       },
     };
