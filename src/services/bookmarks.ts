@@ -16,6 +16,46 @@ export interface IBookmarkCreateRequest {
   origin: string;
 }
 
+export interface IBookmarksGetRequest {
+  userId: string;
+}
+
+export interface IBookmarkGetRequest {
+  collectionId: string;
+  uuid: number;
+}
+
+export interface IBookmarkSearchRequest {
+  userId: string;
+  query: string;
+}
+
+export interface IBookmark {
+  url: string;
+  uuid: number;
+  userId: string;
+  organisationId: string;
+  title?: string;
+  collection: { uuid: string };
+  notes?: string;
+  expiration: string;
+  archived: boolean;
+  origin: string;
+  created?: string;
+  updated?: string;
+  metadata: IPageMetaData,
+  screenshot?: string,
+}
+
+export interface IPageMetaData {
+  title: string;
+  description: string;
+  image?: string;
+  icon?: string;
+  type: string;
+  keywords: string[];
+}
+
 
 const baseUrl = process.env.BASE_URL!;
 const serviceRoleArn = process.env.SERVICE_ROLE!;
@@ -85,11 +125,68 @@ async function requestBookmarkCreate(data: IBookmarkCreateRequest) {
 
     await client.post(path, data, headers);
   } catch (error) {
-    logger.error("There was an issue contacting the bookmarks service", { error, data });
-    throw new Error(error.message || "There was an error contacting the bookmarks service");
+    logger.error("There was an issue contacting the bookmarks service to create a bookmark", { error, data });
+    throw new Error(error.message || "There was an error contacting the bookmarks service to create a bookmark");
+  }
+}
+
+async function getBookmarks(data: IBookmarksGetRequest): Promise<IBookmark[]> {
+  const client = createClient(baseUrl, undefined, 15000, true);
+
+  const path = "/bkmark/internal/get-bookmarks";
+  try {
+    const credentials = await getRoleCredentials(logger.getCorrelationId());
+    if (!credentials) {
+      throw new Error("Failed to assume role");
+    }
+    const headers = getHeaders(credentials, path, data, logger.getCorrelationId());
+
+    return (await client.post(path, data, headers)).data.data.bookmarks;
+  } catch (error) {
+    logger.error("There was an issue contacting the bookmarks service to get bookmarks", { error, data });
+    throw new Error(error.message || "There was an error contacting the bookmarks service to get bookmarks");
+  }
+}
+
+async function getBookmark(data: IBookmarkGetRequest): Promise<IBookmark> {
+  const client = createClient(baseUrl, undefined, 15000, true);
+
+  const path = "/bkmark/internal/get-bookmark";
+  try {
+    const credentials = await getRoleCredentials(logger.getCorrelationId());
+    if (!credentials) {
+      throw new Error("Failed to assume role");
+    }
+    const headers = getHeaders(credentials, path, data, logger.getCorrelationId());
+
+    return (await client.post(path, data, headers)).data.data.bookmark;
+  } catch (error) {
+    logger.error("There was an issue contacting the bookmarks service to get a single bookmark", { error, data });
+    throw new Error(error.message || "There was an error contacting the bookmarks service to get a single bookmark");
+  }
+}
+
+async function searchBookmarks(data: IBookmarkSearchRequest): Promise<IBookmark[]> {
+  const client = createClient(baseUrl, undefined, 15000, true);
+
+  const path = "/search/internal/search";
+  try {
+    const credentials = await getRoleCredentials(logger.getCorrelationId());
+    if (!credentials) {
+      throw new Error("Failed to assume role");
+    }
+    const headers = getHeaders(credentials, path, data, logger.getCorrelationId());
+
+    return (await client.post(path, data, headers)).data.data.hits;
+  } catch (error) {
+    logger.error("There was an issue contacting the search service to search bookmarks", { error, data });
+    throw new Error(error.message || "There was an error contacting the search service to search bookmarks");
   }
 }
 
 export default {
   requestBookmarkCreate,
+  getBookmarks,
+  searchBookmarks,
+  getBookmark,
 }

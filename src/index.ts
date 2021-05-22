@@ -6,6 +6,8 @@ import { ISlackInstallationCreated } from './models/internal-events';
 import { handleMessage } from './slack-handlers/message';
 import { handleUninstallApp } from './slack-handlers/uninstall';
 import logger from "logger";
+import { handleSearch } from './slack-handlers/search';
+import bookmarks from './services/bookmarks';
 
 const installationStore = {
   storeInstallation: async (installation: Installation) => {
@@ -48,6 +50,7 @@ const expressReceiver = new ExpressReceiver({
     "mpim:history",
     "team:read",
     "links:read",
+    "commands",
   ],
   installationStore,
   processBeforeResponse: true
@@ -110,23 +113,68 @@ slackApp.event<'app_home_opened'>('app_home_opened', async ({ event, client, say
   await handleAppHomeOpened(event, client, say);
 });
 
+slackApp.command('/bkmark', async ({ command, ack, say, client }) => {
+  await ack();
+
+  await handleSearch(command, client);
+});
+
 slackApp.action('log_in_button_click', async ({ body, ack, say }) => {
   await handleLoginButtonClick(body, ack, say);
 });
 
-slackApp.action('connect_slack_instructions_click', async ({ body, ack, say }) => {
+slackApp.action('connect_slack_instructions_click', async ({ body, ack, respond, action }) => {
   await ack();
   logger.info("Received a connect_slack_instructions_click action", body);
+  await respond({ delete_original: true });
 });
 
-slackApp.action('contact_support_click', async ({ body, ack, say }) => {
+slackApp.action('contact_support_click', async ({ body, ack, respond, action }) => {
   await ack();
   logger.info("Received a contact_support_click action", body);
+  await respond({ delete_original: true });
 });
 
-slackApp.action('view_saved_link_click', async ({ body, ack, say }) => {
+slackApp.action('view_saved_link_click', async ({ body, ack, respond, action }) => {
   await ack();
   logger.info("Received a view_saved_link_click action", body);
+  await respond({ delete_original: true });
+});
+
+slackApp.action('send_bookmark', async ({ body, ack, respond, say, action }) => {
+  await ack();
+  logger.info("Received a send_bookmark action", { body, action });
+  await respond({ delete_original: true });
+  //@ts-ignore
+  const [collectionId, uuid] = action.value.split("#");
+  const bookmark = await bookmarks.getBookmark({ collectionId, uuid: Number(uuid) });
+  const blocks = [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": ` <${bookmark.url}|*${bookmark.title || bookmark.metadata.title}*>\n${bookmark.notes || bookmark.metadata.description}`
+      },
+      "accessory": {
+        "type": "image",
+        "image_url": bookmark.metadata.image,
+        "alt_text": bookmark.title || bookmark.metadata.title || "",
+      }
+    }
+  ];
+  await say({
+    //@ts-ignore
+    channel: body.container.channel_id,
+    blocks,
+    text: "",
+    as_user: true,
+  })
+});
+
+slackApp.action('open_bookmark', async ({ body, ack, respond, action }) => {
+  await ack();
+  logger.info("Received a open_bookmark action", body);
+  await respond({ delete_original: true });
 });
 
 slackApp.event<'app_uninstalled'>('app_uninstalled', async ({ event }) => {

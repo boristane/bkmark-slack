@@ -1,12 +1,13 @@
-import { AppHomeOpenedEvent, SayFn, SlackAction } from "@slack/bolt";
-import logger from "logger";
+import { SlashCommand } from "@slack/bolt";
 import { ISlackUser } from "../models/slack-user";
-import bookmarks from "../services/bookmarks";
 import database from "../services/database/database";
 import internalStore, { InternalEventTypes } from "../services/internal-store";
+import logger from "logger";
+import bookmarks from "../services/bookmarks";
 
-export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any, say: SayFn) {
-  const { user: slackId } = event;
+export async function handleSearch(command: SlashCommand, client: any) {
+  logger.info("Handling the command", { command });
+  const { user_id: slackId } = command;
 
   const { team } = await client.team.info();
   const user = await database.getSlackUser(team.id, slackId);
@@ -46,7 +47,8 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
 
       const loginUrl = `http://localhost:8080/login?slackTeam=${team.id}&slackUser=${slackId}`;
 
-      await say({
+      await client.chat.postEphemeral({
+        channel: command.channel_id,
         blocks: [
           {
             "type": "section",
@@ -80,7 +82,8 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
             ]
           }
         ],
-        text: ``
+        text: ``,
+        user: slackId,
       });
     } catch (error) {
       logger.error("There was a problem prompting a slack user to log-in", error);
@@ -90,20 +93,46 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
 
   try {
     const bkmarkUser = await database.getUser(user.userId);
-    const b = await bookmarks.getBookmarks({ userId: bkmarkUser.uuid });
+    const b = await bookmarks.searchBookmarks({ userId: bkmarkUser.uuid, query: command.text });
     const sections: any[] = [];
-    b.forEach(bookmark => {
+    b.slice(0, 4).forEach(bookmark => {
       sections.push({
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": `<${bookmark.url}|*${bookmark.title || bookmark.metadata.title}*>\n${bookmark.notes || bookmark.metadata.description}`
+          "text": ` <${bookmark.url}|*${bookmark.title || bookmark.metadata.title}*>\n${bookmark.notes || bookmark.metadata.description}`
         },
         "accessory": {
           "type": "image",
           "image_url": bookmark.metadata.image,
           "alt_text": bookmark.title || bookmark.metadata.title || "",
         }
+      });
+      sections.push({
+        "type": "actions",
+        "elements": [
+          {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "Send",
+              "emoji": true
+            },
+            "value": `${bookmark.collection.uuid}#${bookmark.uuid}`,
+            "action_id": "send_bookmark",
+          },
+          {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "Open",
+              "emoji": true
+            },
+            "value": `${bookmark.collection.uuid}#${bookmark.uuid}`,
+            "action_id": "open_bookmark",
+            "url": bookmark.url,
+          },
+        ]
       });
       sections.push({
         "type": "divider"
@@ -114,33 +143,23 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": "*👋 Hi <@" + slackId + ">, find your recent bookmarks :bookmark:*\n\n"
+          "text": "*Your search results:*\n\n"
         }
       },
       ...sections,
     ];
 
-    const result = await client.views.publish({
-      user_id: slackId,
-      view: {
-        "type": "home",
-        blocks,
-      }
+    const result = client.chat.postEphemeral({
+      channel: command.channel_id,
+      blocks,
+      user: slackId,
     });
   }
   catch (error) {
-    logger.error("There was an error sending the recent bookmarks to a user", { error, event });
-    await client.views.publish({
-      user_id: slackId,
-      view: {
-        "type": "home",
-        "text": "There was an issue fetching your bookmarks. Please try again. If the problem persists, please contact support."
-      }
+    logger.error("There was an error sending the searching the bookmarks for a user", { error, command });
+    await client.chat.postEphemeral({
+      channel: command.channel_id,
+      "text": "There was an issue fetching your bookmarks. Please try again. If the problem persists, please contact support."
     });
   }
-}
-
-export async function handleLoginButtonClick(body: SlackAction, ack: Function, say: SayFn) {
-  await ack();
-  logger.info("Received a log_in_button_click action", body);
 }
