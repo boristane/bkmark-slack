@@ -1,6 +1,5 @@
 import bookmarkService, { IBookmarkCreateRequest } from "../services/bookmarks";
 import logger from "logger";
-import { Context } from "@slack/bolt";
 import { WebClient } from "@slack/web-api"
 import database from "../services/database/database";
 import { IBookmarkCreateRequestSent } from "../models/internal-events";
@@ -111,8 +110,7 @@ export async function handleReaction(url: string, slackId: string, channel: stri
   }
 
   try {
-    // To make sure we respond to slack within 3 seconds, we send the request and don't wait for the response (no await)
-    bookmarkService.requestBookmarkCreate(requestData);
+    await bookmarkService.requestBookmarkCreate(requestData);
     const e: IBookmarkCreateRequestSent = {
       uuid: `organisation#${collection.organisationId}#collection#${collection.uuid}`,
       data: { requestData },

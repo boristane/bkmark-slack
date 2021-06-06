@@ -89,6 +89,22 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
     return;
   }
 
+  await client.views.publish({
+    user_id: slackId,
+    view: {
+      "type": "home",
+      blocks: [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*Loading*\n\n"
+          }
+        },
+      ],
+    }
+  });
+
   try {
     const bkmarkUser = await database.getUser(user.userId);
     const b = await bookmarks.getBookmarks({ userId: bkmarkUser.uuid });
@@ -121,7 +137,7 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
       ...sections,
     ];
 
-    const result = await client.views.publish({
+    await client.views.publish({
       user_id: slackId,
       view: {
         "type": "home",

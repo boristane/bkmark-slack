@@ -8,6 +8,7 @@ import logger from "logger";
 import { handleSearch } from './slack-handlers/search';
 import bookmarks from './services/bookmarks';
 import { handleReaction } from './slack-handlers/reaction';
+import { AwsCallback, AwsEvent } from '@slack/bolt/dist/receivers/AwsLambdaReceiver';
 
 const installationStore = {
   storeInstallation: async (installation: Installation) => {
@@ -119,7 +120,7 @@ slackApp.event<'app_home_opened'>('app_home_opened', async ({ event, client, say
 });
 
 
-slackApp.event<'reaction_added'>('reaction_added', async ({ event, client }) => {
+slackApp.event<'reaction_added'>('reaction_added', async ({ event, client, context }) => {
   try {
     logger.info("Processing reaction_added event", event);
     if (event.reaction !== "bookmark") {
@@ -259,4 +260,15 @@ slackApp.event<'app_uninstalled'>('app_uninstalled', async ({ event }) => {
 
 });
 
-module.exports.eventHandler = eventReceiver.toHandler();
+
+export async function handler(event: AwsEvent, context: any, callback: AwsCallback) {
+  const shouldIgnore = event.headers["X-Slack-Retry-Reason"] === "http_timeout" || Number(event.headers["X-Slack-Retry-Num"]) > 0;
+  if (shouldIgnore) {
+    logger.info("Ignoring because it's a retry", { headers: event.headers });
+    return;
+  }
+  const eventHandler = eventReceiver.toHandler();
+  return eventHandler(event, context, callback)
+}
+
+module.exports.handler = handler;

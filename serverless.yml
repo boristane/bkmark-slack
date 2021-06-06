@@ -124,7 +124,7 @@ provider:
 
 functions:
   slack:
-    handler: .build/src/index.eventHandler
+    handler: .build/src/index.handler
     description: ${opt:stage} - The Slack event listener
     memorySize: 512
     events:
