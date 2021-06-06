@@ -19,7 +19,7 @@ export async function handleReaction(url: string, slackId: string, channel: stri
     };
 
     await database.createSlackUser(slackUser);
-    const loginUrl = `http://localhost:8080/login?slackTeam=${team.id}&slackUser=${slackId}`;
+    const loginUrl = `https://app.${process.env.DOMAIN}/login?slackTeam=${team.id}&slackUser=${slackId}`;
     await client.chat.postEphemeral({
       channel,
       blocks: [
@@ -64,7 +64,7 @@ export async function handleReaction(url: string, slackId: string, channel: stri
   const collection = await database.getCollectionByChannel(team.id, channel);
 
   if (!collection) {
-    const helpUrl = `http://localhost:8080/help`;
+    const helpUrl = `https://help.${process.env.DOMAIN}`;
     await client.chat.postEphemeral({
       channel,
       blocks: [
@@ -157,7 +157,7 @@ export async function handleReaction(url: string, slackId: string, channel: stri
     return;
   }
 
-  const recentUrl = "http://localhost:8080?view=recent";
+  const recentUrl = `https://app.${process.env.DOMAIN}?view=recent`;
   await client.chat.postEphemeral({
     channel,
     blocks: [

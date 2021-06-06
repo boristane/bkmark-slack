@@ -45,7 +45,7 @@ export async function handleSearch(command: SlashCommand, client: any) {
       }
       internalStore.createInternalEvent(e);
 
-      const loginUrl = `http://localhost:8080/login?slackTeam=${team.id}&slackUser=${slackId}`;
+      const loginUrl = `https://app.${process.env.DOMAIN}/login?slackTeam=${team.id}&slackUser=${slackId}`;
 
       await client.chat.postEphemeral({
         channel: command.channel_id,

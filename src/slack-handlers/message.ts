@@ -20,7 +20,7 @@ export async function handleMessage(message: MessageEvent & { user?: string; tea
     };
 
     await database.createSlackUser(slackUser);
-    const loginUrl = `http://localhost:8080/login?slackTeam=${team.id}&slackUser=${message.user}`;
+    const loginUrl = `https://app.${process.env.DOMAIN}/login?slackTeam=${team.id}&slackUser=${message.user}`;
     await client.chat.postEphemeral({
       channel: message.channel,
       blocks: [
@@ -65,7 +65,7 @@ export async function handleMessage(message: MessageEvent & { user?: string; tea
   const collection = await database.getCollectionByChannel(message.team!, message.channel);
 
   if (!collection) {
-    const helpUrl = `http://localhost:8080/help`;
+    const helpUrl = `https://help.${process.env.DOMAIN}`;
     await client.chat.postEphemeral({
       channel: message.channel,
       blocks: [
@@ -158,7 +158,7 @@ export async function handleMessage(message: MessageEvent & { user?: string; tea
     return;
   }
 
-  const recentUrl = "http://localhost:8080?view=recent";
+  const recentUrl = `https://app.${process.env.DOMAIN}?view=recent`;
   await client.chat.postEphemeral({
     channel: message.channel,
     blocks: [

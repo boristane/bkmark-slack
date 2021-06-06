@@ -45,7 +45,7 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
       }
       internalStore.createInternalEvent(e);
 
-      const loginUrl = `http://localhost:8080/login?slackTeam=${team.id}&slackUser=${slackId}`;
+      const loginUrl = `https://app.${process.env.DOMAIN}/login?slackTeam=${team.id}&slackUser=${slackId}`;
 
       await say({
         blocks: [

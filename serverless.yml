@@ -120,6 +120,7 @@ provider:
       Ref: InternalEventsTable
     SERVICE_ROLE: !GetAtt ServiceRole.Arn
     BASE_URL: ${file(./${opt:stage}.yml):baseUrl}
+    DOMAIN: ${file(./${opt:stage}.yml):domain}
 
 
 functions:
