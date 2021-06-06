@@ -119,6 +119,7 @@ export async function handleReaction(url: string, slackId: string, channel: stri
     await internalStore.createInternalEvent(e);
   } catch (error) {
     logger.error("Received an error from the bookmarks service", { error, data: requestData });
+    const messageAddon = error.message?.includes("402") ? "The Slack integration is available only on the Teams Plan. " : "";
     const supportUrl = "https://help.bkmark.io";
     await client.chat.postEphemeral({
       channel,
@@ -127,7 +128,7 @@ export async function handleReaction(url: string, slackId: string, channel: stri
           "type": "section",
           "text": {
             "type": "mrkdwn",
-            "text": `👋 Hi <@${slackId}>, there was an issue syncing this link to Bkmark. Please contact support for further help.`
+            "text": `👋 Hi <@${slackId}>, there was an issue syncing this link to Bkmark. ${messageAddon}Please contact support for further help.`
           },
         },
         {
