@@ -23,7 +23,6 @@ export async function handleMessage(message: IEventMessage): Promise<boolean> {
       break;
     case InternalEventTypes.slackInstallationCreated:
       res = true;
-      logger.info("Here is the god damn event", data);
       break;
     case eventType.collectionCreated:
       res = await createCollection(data);

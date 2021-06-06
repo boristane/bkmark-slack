@@ -3,11 +3,11 @@ import { handleAppHomeOpened, handleLoginButtonClick } from './slack-handlers/au
 import database from './services/database/database';
 import internalStore, { InternalEventTypes } from './services/internal-store';
 import { ISlackInstallationCreated } from './models/internal-events';
-import { handleMessage } from './slack-handlers/message';
 import { handleUninstallApp } from './slack-handlers/uninstall';
 import logger from "logger";
 import { handleSearch } from './slack-handlers/search';
 import bookmarks from './services/bookmarks';
+import { handleReaction } from './slack-handlers/reaction';
 
 const installationStore = {
   storeInstallation: async (installation: Installation) => {
@@ -43,14 +43,15 @@ const expressReceiver = new ExpressReceiver({
   stateSecret: process.env.SLACK_STATE_SECRET,
   scopes: [
     "app_mentions:read",
-    "channels:history",
+    "reactions:read",
     "chat:write",
-    "groups:history",
-    "im:history",
-    "mpim:history",
     "team:read",
     "links:read",
     "commands",
+    "channels:history",
+    "groups:history",
+    "mpim:history",
+    "im:history",
   ],
   installationStore,
   processBeforeResponse: true
@@ -105,80 +106,157 @@ export const slackApp = new App({
 // From https://stackoverflow.com/questions/3809401/what-is-a-good-regular-expression-to-match-a-url
 const regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
-slackApp.message(regex, async ({ message, context, say, client }) => {
-  await handleMessage(message, context, say, client);
-});
+// slackApp.message(regex, async ({ message, context, say, client }) => {
+//   await handleMessage(message, context, say, client);
+// });
 
 slackApp.event<'app_home_opened'>('app_home_opened', async ({ event, client, say }) => {
-  await handleAppHomeOpened(event, client, say);
+  try {
+    await handleAppHomeOpened(event, client, say);
+  } catch (error) {
+    logger.error("There was an issue handling the app_home_opened event", { event, error });
+  }
 });
 
-slackApp.command('/bkmark', async ({ command, ack, say, client }) => {
-  await ack();
 
-  await handleSearch(command, client);
+slackApp.event<'reaction_added'>('reaction_added', async ({ event, client }) => {
+  try {
+    logger.info("Processing reaction_added event", event);
+    if (event.reaction !== "bookmark") {
+      return;
+    }
+    const { item } = event;
+    if (item.type !== "message") {
+      return;
+    }
+
+    const r = (await client.reactions.get({ timestamp: item.ts, full: true, channel: item.channel }));
+    //@ts-ignore
+    const existingReactions = r.message?.reactions as Array<Record<string, any>>
+
+    const bookmarkReactions = existingReactions.find(reaction => reaction.name === "bookmark");
+    if (bookmarkReactions?.count > 1) {
+      return;
+    }
+
+    const result = (await client.conversations.history({ channel: item.channel, latest: item.ts, limit: 1, inclusive: true }));
+    //@ts-ignore
+    const message = result.messages[0];
+
+    const matches = (message.text as string).match(regex);
+    if (!matches) {
+      return;
+    }
+
+    const url = matches[0];
+
+    await handleReaction(url, event.user, item.channel, client);
+  } catch (error) {
+    logger.error("There was an issue handling the reaction_added event", { event, error });
+  }
+});
+
+
+slackApp.command('/bkmark', async ({ command, ack, say, client }) => {
+  try {
+    await ack();
+    await handleSearch(command, client);
+  } catch (error) {
+    logger.error("There was an issue handling the /bkmark command", { command, error });
+  }
 });
 
 slackApp.action('log_in_button_click', async ({ body, ack, say }) => {
-  await handleLoginButtonClick(body, ack, say);
+  try {
+    await handleLoginButtonClick(body, ack, say);
+  } catch (error) {
+    logger.error("There was an issue handling the log_in_button_click action", { body, error });
+  }
 });
 
 slackApp.action('connect_slack_instructions_click', async ({ body, ack, respond, action }) => {
-  await ack();
-  logger.info("Received a connect_slack_instructions_click action", body);
-  await respond({ delete_original: true });
+  try {
+    await ack();
+    logger.info("Received a connect_slack_instructions_click action", body);
+    await respond({ delete_original: true });
+  } catch (error) {
+    logger.error("There was an issue handling the connect_slack_instructions_click action", { body, error });
+  }
 });
 
 slackApp.action('contact_support_click', async ({ body, ack, respond, action }) => {
-  await ack();
-  logger.info("Received a contact_support_click action", body);
-  await respond({ delete_original: true });
+  try {
+    await ack();
+    logger.info("Received a contact_support_click action", body);
+    await respond({ delete_original: true });
+  } catch (error) {
+    logger.error("There was an issue handling the contact_support_click action", { body, error });
+  }
 });
 
 slackApp.action('view_saved_link_click', async ({ body, ack, respond, action }) => {
-  await ack();
-  logger.info("Received a view_saved_link_click action", body);
-  await respond({ delete_original: true });
+  try {
+    await ack();
+    logger.info("Received a view_saved_link_click action", body);
+    await respond({ delete_original: true });
+  } catch (error) {
+    logger.error("There was an issue handling the view_saved_link_click action", { body, error });
+  }
 });
 
 slackApp.action('send_bookmark', async ({ body, ack, respond, say, action }) => {
-  await ack();
-  logger.info("Received a send_bookmark action", { body, action });
-  await respond({ delete_original: true });
-  //@ts-ignore
-  const [collectionId, uuid] = action.value.split("#");
-  const bookmark = await bookmarks.getBookmark({ collectionId, uuid: Number(uuid) });
-  const blocks = [
-    {
-      "type": "section",
-      "text": {
-        "type": "mrkdwn",
-        "text": ` <${bookmark.url}|*${bookmark.title || bookmark.metadata.title}*>\n${bookmark.notes || bookmark.metadata.description}`
-      },
-      "accessory": {
-        "type": "image",
-        "image_url": bookmark.metadata.image,
-        "alt_text": bookmark.title || bookmark.metadata.title || "",
-      }
-    }
-  ];
-  await say({
+  try {
+    await ack();
+    logger.info("Received a send_bookmark action", { body, action });
+    await respond({ delete_original: true });
     //@ts-ignore
-    channel: body.container.channel_id,
-    blocks,
-    text: "",
-    as_user: true,
-  })
+    const [collectionId, uuid] = action.value.split("#");
+    const bookmark = await bookmarks.getBookmark({ collectionId, uuid: Number(uuid) });
+    const blocks = [
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": ` <${bookmark.url}|*${bookmark.title || bookmark.metadata.title}*>\n${bookmark.notes || bookmark.metadata.description}`
+        },
+        "accessory": {
+          "type": "image",
+          "image_url": bookmark.metadata.image,
+          "alt_text": bookmark.title || bookmark.metadata.title || "",
+        }
+      }
+    ];
+    await say({
+      //@ts-ignore
+      channel: body.container.channel_id,
+      blocks,
+      text: "",
+      as_user: true,
+    })
+  } catch (error) {
+    logger.error("There was an issue handling the send_bookmark action", { body, error });
+  }
+
 });
 
 slackApp.action('open_bookmark', async ({ body, ack, respond, action }) => {
-  await ack();
-  logger.info("Received a open_bookmark action", body);
-  await respond({ delete_original: true });
+  try {
+    await ack();
+    logger.info("Received a open_bookmark action", body);
+    await respond({ delete_original: true });
+  } catch (error) {
+    logger.error("There was an issue handling the open_bookmark action", { body, error });
+  }
+
 });
 
 slackApp.event<'app_uninstalled'>('app_uninstalled', async ({ event }) => {
-  await handleUninstallApp(event);
+  try {
+    await handleUninstallApp(event);
+  } catch (error) {
+    logger.error("There was an issue handling the app_uninstalled event", { event, error });
+  }
+
 });
 
 module.exports.eventHandler = eventReceiver.toHandler();

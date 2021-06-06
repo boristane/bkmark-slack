@@ -6,6 +6,7 @@ import database from "../services/database/database";
 import internalStore, { InternalEventTypes } from "../services/internal-store";
 
 export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any, say: SayFn) {
+  logger.info("Handling the app_home_opened evemt", event);
   const { user: slackId } = event;
 
   const { team } = await client.team.info();
@@ -99,11 +100,11 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
           "type": "mrkdwn",
           "text": `<${bookmark.url}|*${bookmark.title || bookmark.metadata.title}*>\n${bookmark.notes || bookmark.metadata.description}`
         },
-        "accessory": {
-          "type": "image",
-          "image_url": bookmark.metadata.image,
-          "alt_text": bookmark.title || bookmark.metadata.title || "",
-        }
+        // "accessory": {
+        //   "type": "image",
+        //   "image_url": bookmark.metadata.image,
+        //   "alt_text": bookmark.title || bookmark.metadata.title || "",
+        // }
       });
       sections.push({
         "type": "divider"

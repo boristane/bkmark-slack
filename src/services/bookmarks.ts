@@ -123,6 +123,7 @@ async function requestBookmarkCreate(data: IBookmarkCreateRequest) {
     }
     const headers = getHeaders(credentials, path, data, logger.getCorrelationId());
 
+    logger.info("Sending the request to the bookmarks service to create a bookmarks", data);
     await client.post(path, data, headers);
   } catch (error) {
     logger.error("There was an issue contacting the bookmarks service to create a bookmark", { error, data });

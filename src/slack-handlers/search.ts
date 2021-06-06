@@ -102,11 +102,11 @@ export async function handleSearch(command: SlashCommand, client: any) {
           "type": "mrkdwn",
           "text": ` <${bookmark.url}|*${bookmark.title || bookmark.metadata.title}*>\n${bookmark.notes || bookmark.metadata.description}`
         },
-        "accessory": {
-          "type": "image",
-          "image_url": bookmark.metadata.image,
-          "alt_text": bookmark.title || bookmark.metadata.title || "",
-        }
+        // "accessory": {
+        //   "type": "image",
+        //   "image_url": bookmark.metadata.image,
+        //   "alt_text": bookmark.title || bookmark.metadata.title || "",
+        // }
       });
       sections.push({
         "type": "actions",
@@ -149,7 +149,7 @@ export async function handleSearch(command: SlashCommand, client: any) {
       ...sections,
     ];
 
-    const result = client.chat.postEphemeral({
+    await client.chat.postEphemeral({
       channel: command.channel_id,
       blocks,
       user: slackId,
