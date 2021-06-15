@@ -5,12 +5,12 @@ import database from "../services/database/database";
 import { IBookmarkCreateRequestSent } from "../models/internal-events";
 import internalStore, { InternalEventTypes } from "../services/internal-store";
 
-export async function handleReaction(url: string, slackId: string, channel: string, client: WebClient) {
-  logger.info("Processing the emoji reaction", { url, slackId, channel });
+export async function handleReaction(urls: string[], slackId: string, channel: string, client: WebClient) {
+  logger.info("Processing the emoji reaction", { urls, slackId, channel });
 
   const { team } = await client.team.info() as any;
   let slackUser = await database.getSlackUser(team.id, slackId);
-  
+
   if (!slackUser) {
     slackUser = {
       slackId: slackId,
@@ -101,25 +101,32 @@ export async function handleReaction(url: string, slackId: string, channel: stri
     return;
   }
 
-  const requestData: IBookmarkCreateRequest = {
-    url: url,
-    userId: slackUser.userId!,
-    collectionId: collection.uuid,
-    organisationId: collection.organisationId,
-    origin: "SLACK",
-  }
-
-  try {
-    await bookmarkService.requestBookmarkCreate(requestData);
-    const e: IBookmarkCreateRequestSent = {
-      uuid: `organisation#${collection.organisationId}#collection#${collection.uuid}`,
-      data: { requestData },
-      type: InternalEventTypes.bookmarkCreateRequestSent,
+  const failures: any[] = [];
+  await Promise.all(urls.map(async url => {
+    const requestData: IBookmarkCreateRequest = {
+      url: url,
+      userId: slackUser?.userId!,
+      collectionId: collection.uuid,
+      organisationId: collection.organisationId,
+      origin: "SLACK",
     }
-    await internalStore.createInternalEvent(e);
-  } catch (error) {
-    logger.error("Received an error from the bookmarks service", { error, data: requestData });
-    const messageAddon = error.message?.includes("402") ? "The Slack integration is available only on the Teams Plan. " : "";
+
+    try {
+      await bookmarkService.requestBookmarkCreate(requestData);
+      const e: IBookmarkCreateRequestSent = {
+        uuid: `organisation#${collection.organisationId}#collection#${collection.uuid}`,
+        data: { requestData },
+        type: InternalEventTypes.bookmarkCreateRequestSent,
+      }
+      await internalStore.createInternalEvent(e);
+    } catch (error) {
+      logger.error("Received an error from the bookmarks service", { error, data: requestData });
+      failures.push(error);
+    }
+  }))
+
+  if (failures.length > 0) {
+    const messageAddon = failures.some(error => error.message?.includes("402")) ? "The Slack integration is available only on the Teams Plan. " : "";
     const supportUrl = "https://help.bkmark.io";
     await client.chat.postEphemeral({
       channel,
@@ -128,7 +135,7 @@ export async function handleReaction(url: string, slackId: string, channel: stri
           "type": "section",
           "text": {
             "type": "mrkdwn",
-            "text": `👋 Hi <@${slackId}>, there was an issue syncing this link to Bkmark. ${messageAddon}Please contact support for further help.`
+            "text": `👋 Hi <@${slackId}>, there was an issue syncing to Bkmark. ${messageAddon}Please contact support for further help.`
           },
         },
         {
@@ -165,7 +172,7 @@ export async function handleReaction(url: string, slackId: string, channel: stri
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": `👋 Hi <@${slackId}>, this link was synced in Bkmark.`
+          "text": `👋 Hi <@${slackId}>, link(s) synced in Bkmark.`
         },
       },
       {

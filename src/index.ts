@@ -9,6 +9,7 @@ import { handleSearch } from './slack-handlers/search';
 import bookmarks from './services/bookmarks';
 import { handleReaction } from './slack-handlers/reaction';
 import { AwsCallback, AwsEvent } from '@slack/bolt/dist/receivers/AwsLambdaReceiver';
+import { findObject } from './utils/utils';
 
 const installationStore = {
   storeInstallation: async (installation: Installation) => {
@@ -105,7 +106,7 @@ export const slackApp = new App({
 });
 
 // From https://stackoverflow.com/questions/3809401/what-is-a-good-regular-expression-to-match-a-url
-const regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
+// const regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
 // slackApp.message(regex, async ({ message, context, say, client }) => {
 //   await handleMessage(message, context, say, client);
@@ -144,14 +145,15 @@ slackApp.event<'reaction_added'>('reaction_added', async ({ event, client, conte
     //@ts-ignore
     const message = result.messages[0];
 
-    const matches = (message.text as string).match(regex);
-    if (!matches) {
+    logger.info("Here is the message", message);
+
+    const matches = findObject(message.blocks, "type", "link").map(a => a.url);
+    logger.info("Here are the matches", matches);
+    if (!matches || !matches.length) {
       return;
     }
 
-    const url = matches[0];
-
-    await handleReaction(url, event.user, item.channel, client);
+    await handleReaction(matches, event.user, item.channel, client);
   } catch (error) {
     logger.error("There was an issue handling the reaction_added event", { event, error });
   }
@@ -230,6 +232,7 @@ slackApp.action('send_bookmark', async ({ body, ack, respond, say, action }) => 
     await say({
       //@ts-ignore
       channel: body.container.channel_id,
+      //@ts-ignore
       blocks,
       text: "",
       as_user: true,
@@ -265,7 +268,15 @@ export async function handler(event: AwsEvent, context: any, callback: AwsCallba
   const shouldIgnore = event.headers["X-Slack-Retry-Reason"] === "http_timeout" || Number(event.headers["X-Slack-Retry-Num"]) > 0;
   if (shouldIgnore) {
     logger.info("Ignoring because it's a retry", { headers: event.headers });
-    return;
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+        "X-Slack-No-Retry": 1
+      },
+    };;
   }
   const eventHandler = eventReceiver.toHandler();
   return eventHandler(event, context, callback)

@@ -6,7 +6,7 @@ import database from "../services/database/database";
 import internalStore, { InternalEventTypes } from "../services/internal-store";
 
 export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any, say: SayFn) {
-  logger.info("Handling the app_home_opened evemt", event);
+  logger.info("Handling the app_home_opened event", event);
   const { user: slackId } = event;
 
   const { team } = await client.team.info();
@@ -48,6 +48,7 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
       const loginUrl = `https://app.${process.env.DOMAIN}/login?slackTeam=${team.id}&slackUser=${slackId}`;
 
       await say({
+        //@ts-ignore
         blocks: [
           {
             "type": "section",
@@ -87,73 +88,6 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
       logger.error("There was a problem prompting a slack user to log-in", error);
     }
     return;
-  }
-
-  await client.views.publish({
-    user_id: slackId,
-    view: {
-      "type": "home",
-      blocks: [
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": "*Loading*\n\n"
-          }
-        },
-      ],
-    }
-  });
-
-  try {
-    const bkmarkUser = await database.getUser(user.userId);
-    const b = await bookmarks.getBookmarks({ userId: bkmarkUser.uuid });
-    const sections: any[] = [];
-    b.forEach(bookmark => {
-      sections.push({
-        "type": "section",
-        "text": {
-          "type": "mrkdwn",
-          "text": `<${bookmark.url}|*${bookmark.title || bookmark.metadata.title}*>\n${bookmark.notes || bookmark.metadata.description}`
-        },
-        // "accessory": {
-        //   "type": "image",
-        //   "image_url": bookmark.metadata.image,
-        //   "alt_text": bookmark.title || bookmark.metadata.title || "",
-        // }
-      });
-      sections.push({
-        "type": "divider"
-      });
-    });
-    const blocks = [
-      {
-        "type": "section",
-        "text": {
-          "type": "mrkdwn",
-          "text": "*👋 Hi <@" + slackId + ">, find your recent bookmarks :bookmark:*\n\n"
-        }
-      },
-      ...sections,
-    ];
-
-    await client.views.publish({
-      user_id: slackId,
-      view: {
-        "type": "home",
-        blocks,
-      }
-    });
-  }
-  catch (error) {
-    logger.error("There was an error sending the recent bookmarks to a user", { error, event });
-    await client.views.publish({
-      user_id: slackId,
-      view: {
-        "type": "home",
-        "text": "There was an issue fetching your bookmarks. Please try again. If the problem persists, please contact support."
-      }
-    });
   }
 }
 
