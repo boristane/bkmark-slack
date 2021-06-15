@@ -57,6 +57,39 @@ async function getSlackUser(teamId: string, slackId: string): Promise<ISlackUser
   }
 }
 
+async function getSlackUserByUserId(userId: string): Promise<ISlackUser | undefined> {
+  const { tableName, dynamoDb } = initialise();
+  const params = {
+    TableName: tableName,
+    IndexName: "gsi2",
+    KeyConditionExpression: "#gsi2PartitionKey = :gsi2PartitionKey AND #gsi2SortKey = :gsi2SortKey",
+    ExpressionAttributeNames: {
+      "#gsi2PartitionKey": "gsi2PartitionKey",
+      "#gsi2SortKey": "gsi2SortKey",
+      "#d": "data",
+    },
+    ExpressionAttributeValues: {
+      ":gsi2PartitionKey": `user#${userId}`,
+      ":gsi2SortKey": `user#${userId}`,
+    },
+    ProjectionExpression: "#d",
+    ScanIndexForward: false,
+    Limit: 1,
+  };
+
+  try {
+    const records = await dynamoDb.query(params).promise();
+    if (records.Items) {
+      const [collection] = records.Items.map((item) => item.data) as ISlackUser[];
+      return collection;
+    } else {
+      throw new Error("SLack user not found");
+    }
+  } catch (e) {
+    logger.error("Error getting the slack user by userId", { params, error: e });
+  }
+}
+
 async function connectUserToSlackUser(teamId: string, slackId: string, uuid: string) {
   const { tableName, dynamoDb } = initialise();
 
@@ -94,4 +127,5 @@ export default {
   getSlackUser,
   createSlackUser,
   connectUserToSlackUser,
+  getSlackUserByUserId,
 }

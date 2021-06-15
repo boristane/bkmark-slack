@@ -127,7 +127,7 @@ export async function handleReaction(urls: string[], slackId: string, channel: s
 
   if (failures.length > 0) {
     const messageAddon = failures.some(error => error.message?.includes("402")) ? "The Slack integration is available only on the Teams Plan. " : "";
-    const supportUrl = "https://help.bkmark.io";
+    const supportUrl = `https://help.${process.env.DOMAIN}`;
     await client.chat.postEphemeral({
       channel,
       blocks: [

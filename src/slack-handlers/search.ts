@@ -91,8 +91,37 @@ export async function handleSearch(command: SlashCommand, client: any) {
     return;
   }
 
+  const action = command.text.split(" ")[0];
+  switch(action.toLocaleLowerCase()) {
+    case "search": {
+      await search(user, slackId, command, client);
+      break;
+    }
+    case "save": {
+
+    }
+    default: {
+      await client.chat.postEphemeral({
+        channel: command.channel_id,
+        blocks: [
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": `👋 Hi <@${slackId}> Please use a valid /bkmark slash command, [search].`
+            },
+          },
+        ],
+        text: ``,
+        user: slackId,
+      });
+    }
+  }  
+}
+
+async function search(user: ISlackUser, slackId: string, command: SlashCommand, client: any) {
   try {
-    const bkmarkUser = await database.getUser(user.userId);
+    const bkmarkUser = await database.getUser(user.userId!);
     const b = await bookmarks.searchBookmarks({ userId: bkmarkUser.uuid, query: command.text });
     const sections: any[] = [];
     b.slice(0, 4).forEach(bookmark => {
@@ -102,11 +131,6 @@ export async function handleSearch(command: SlashCommand, client: any) {
           "type": "mrkdwn",
           "text": ` <${bookmark.url}|*${bookmark.title || bookmark.metadata.title}*>\n${bookmark.notes || bookmark.metadata.description}`
         },
-        // "accessory": {
-        //   "type": "image",
-        //   "image_url": bookmark.metadata.image,
-        //   "alt_text": bookmark.title || bookmark.metadata.title || "",
-        // }
       });
       sections.push({
         "type": "actions",

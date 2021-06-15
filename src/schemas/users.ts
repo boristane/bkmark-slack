@@ -1,7 +1,14 @@
 export interface ICreateUserRequest {
   user: {
     uuid: string;
+    forename: string;
+    surname: string;
   };
+}
+
+export interface IUpdateUserRequest {
+  oldUser: Record<string, any>;
+  user: Record<string, any>;
 }
 
 export interface IDeleteUserRequest {

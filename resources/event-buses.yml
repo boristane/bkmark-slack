@@ -32,6 +32,7 @@ Resources:
         detail-type:
           - "USER_CREATED"
           - "USER_DELETED"
+          - "USER_UPDATED"
       State: "ENABLED"
       Targets: 
         - 
@@ -52,6 +53,7 @@ Resources:
           - "USER_INTERNAL_COLLECTION_JOINED"
           - "COLLECTION_CREATED"
           - "COLLECTION_DELETED"
+          - "BOOKMARK_NOTIFICATION_CREATED"
       State: "ENABLED"
       Targets: 
         - 

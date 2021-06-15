@@ -1,12 +1,14 @@
 import database from "../services/database/database";
 import logger from "logger";
 import { IUser } from "../models/user";
-import { ICreateUserRequest, IDeleteUserRequest, IAddUserToOrganisationRequest, IAddUserToCollectionRequest, IRemoveCollectionFromUsersRequest } from "../schemas/users";
+import { ICreateUserRequest, IDeleteUserRequest, IAddUserToOrganisationRequest, IAddUserToCollectionRequest, IRemoveCollectionFromUsersRequest, IUpdateUserRequest } from "../schemas/users";
 
 export async function createUser(data: ICreateUserRequest): Promise<boolean> {
   try {
     const user: IUser = {
       uuid: data.user.uuid,
+      forename: data.user.forename,
+      surname: data.user.surname,
       organisations: [],
       collections: [],
     };
@@ -14,6 +16,21 @@ export async function createUser(data: ICreateUserRequest): Promise<boolean> {
     return true;
   } catch (error) {
     logger.error("There was an error creating a user", { error, data });
+    return false;
+  }
+}
+
+export async function updateUser(data: IUpdateUserRequest): Promise<boolean> {
+  try {
+    const { user, oldUser } = data;
+    if (user.forename === oldUser.forename && user.surname === oldUser.surname) {
+      logger.info("No change to user forename and surname, nothing to do, return.");
+      return true;
+    }
+    await database.editUser(user.uuid, user.forename, user.surname);
+    return true;
+  } catch (error) {
+    logger.error("There was an error updating a user", { error, data });
     return false;
   }
 }

@@ -57,6 +57,35 @@ export async function getUser(userId: string): Promise<IUser> {
   }
 }
 
+async function editUser(uuid: string, forename: string, surname: string): Promise<void> {
+  const { tableName, dynamoDb } = initialise();
+  const params = {
+    TableName: tableName,
+    Key: {
+      partitionKey: `user#${uuid}`,
+      sortKey: `user#${uuid}`,
+    },
+    UpdateExpression: `SET #data.#forename = :forename, #data.#surname = :surname, #data.updated = :updated, updated = :updated`,
+    ExpressionAttributeNames: {
+      "#forename": "forename",
+      "#surname": "surname",
+      "#data": "data",
+    },
+    ExpressionAttributeValues: {
+      ":forename": forename,
+      ":surname": surname,
+      ":updated": moment().format(),
+    },
+    ReturnValues: "ALL_NEW",
+  };
+  try {
+    return (await dynamoDb.update(params).promise()).Attributes?.data;
+  } catch (e) {
+    logger.error("Failed to edit a user in dynamo db", { params, error: e });
+    throw e;
+  }
+}
+
 async function deleteUser(userId: string): Promise<void> {
   const { tableName, dynamoDb } = initialise();
 
@@ -175,6 +204,7 @@ export default {
   createUser,
   getUser,
   deleteUser,
+  editUser,
   appendOrganisationToUser,
   appendCollectionToUser,
   removeCollectionFromUser,

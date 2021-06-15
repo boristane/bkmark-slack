@@ -1,11 +1,11 @@
-import { AppHomeOpenedEvent, SayFn, SlackAction } from "@slack/bolt";
+import { AppHomeOpenedEvent, SlackAction } from "@slack/bolt";
 import logger from "logger";
 import { ISlackUser } from "../models/slack-user";
 import bookmarks from "../services/bookmarks";
 import database from "../services/database/database";
 import internalStore, { InternalEventTypes } from "../services/internal-store";
 
-export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any, say: SayFn) {
+export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any) {
   logger.info("Handling the app_home_opened event", event);
   const { user: slackId } = event;
 
@@ -47,8 +47,7 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
 
       const loginUrl = `https://app.${process.env.DOMAIN}/login?slackTeam=${team.id}&slackUser=${slackId}`;
 
-      await say({
-        //@ts-ignore
+      await client.chat.postEphemeral({
         blocks: [
           {
             "type": "section",
@@ -82,6 +81,8 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
             ]
           }
         ],
+        channel: slackId,
+        user: slackId,
         text: ``
       });
     } catch (error) {
@@ -91,7 +92,7 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
   }
 }
 
-export async function handleLoginButtonClick(body: SlackAction, ack: Function, say: SayFn) {
+export async function handleLoginButtonClick(body: SlackAction, ack: Function) {
   await ack();
   logger.info("Received a log_in_button_click action", body);
 }

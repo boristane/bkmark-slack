@@ -10,6 +10,8 @@ process.env.PROJECTION_TABLE = "bkmark-slack-integration-projection";
 interface IUser {
   uuid: string;
   organisations: string[];
+  forename: string;
+  surname: string;
   collections: Array<{ ownerId: string; uuid: string, isOrganisation: boolean }>;
 }
 
@@ -107,6 +109,8 @@ async function seed() {
     const u = {
       uuid: user.uuid,
       organisations: user.organisations,
+      forename: user.forename,
+      surname: user.surname,
       collections: user.collections.map(c => { return { uuid: c.uuid, organisationId: c.ownerId } })
     }
     await database.createUser(u);

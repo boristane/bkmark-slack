@@ -112,9 +112,9 @@ export const slackApp = new App({
 //   await handleMessage(message, context, say, client);
 // });
 
-slackApp.event<'app_home_opened'>('app_home_opened', async ({ event, client, say }) => {
+slackApp.event<'app_home_opened'>('app_home_opened', async ({ event, client }) => {
   try {
-    await handleAppHomeOpened(event, client, say);
+    await handleAppHomeOpened(event, client);
   } catch (error) {
     logger.error("There was an issue handling the app_home_opened event", { event, error });
   }
@@ -169,9 +169,9 @@ slackApp.command('/bkmark', async ({ command, ack, say, client }) => {
   }
 });
 
-slackApp.action('log_in_button_click', async ({ body, ack, say }) => {
+slackApp.action('log_in_button_click', async ({ body, ack }) => {
   try {
-    await handleLoginButtonClick(body, ack, say);
+    await handleLoginButtonClick(body, ack);
   } catch (error) {
     logger.error("There was an issue handling the log_in_button_click action", { body, error });
   }
@@ -251,7 +251,16 @@ slackApp.action('open_bookmark', async ({ body, ack, respond, action }) => {
   } catch (error) {
     logger.error("There was an issue handling the open_bookmark action", { body, error });
   }
+});
 
+slackApp.action('view_inbox_click', async ({ body, ack, respond, action }) => {
+  try {
+    await ack();
+    logger.info("Received a view_inbox_click action", body);
+    await respond({ delete_original: true });
+  } catch (error) {
+    logger.error("There was an issue handling the view_inbox_click action", { body, error });
+  }
 });
 
 slackApp.event<'app_uninstalled'>('app_uninstalled', async ({ event }) => {

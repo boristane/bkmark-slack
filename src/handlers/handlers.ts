@@ -5,10 +5,12 @@ import {
   addUserToOrganisation,
   addUserToCollection,
   removeCollectionFromUsers,
+  updateUser,
 } from "./users";
 import { IEventMessage } from "../models/events";
 import { createCollection, deleteCollection } from "./collections";
 import { InternalEventTypes } from "../services/internal-store";
+import { notifyMentionnedInABookmark } from "./bookmarks";
 
 export async function handleMessage(message: IEventMessage): Promise<boolean> {
   const data = message.data;
@@ -18,11 +20,17 @@ export async function handleMessage(message: IEventMessage): Promise<boolean> {
     case eventType.userCreated:
       res = await createUser(data);
       break;
+    case eventType.userUpdated:
+      res = await updateUser(data);
+      break;
     case eventType.userInternalOrganisationJoined:
       res = await addUserToOrganisation(data);
       break;
     case InternalEventTypes.slackInstallationCreated:
       res = true;
+      break;
+    case eventType.bookmarkNotificationCreated:
+      res = await notifyMentionnedInABookmark(data);
       break;
     case eventType.collectionCreated:
       res = await createCollection(data);
@@ -50,10 +58,13 @@ export async function handleMessage(message: IEventMessage): Promise<boolean> {
 export enum eventType {
   userCreated = "USER_CREATED",
   userDeleted = "USER_DELETED",
+  userUpdated = "USER_UPDATED",
 
   userInternalOrganisationJoined = "USER_INTERNAL_ORGANISATION_JOINED",
   userInternalCollectionJoined = "USER_INTERNAL_COLLECTION_JOINED",
 
   collectionCreated = "COLLECTION_CREATED",
   collectionDeleted = "COLLECTION_DELETED",
+
+  bookmarkNotificationCreated = "BOOKMARK_NOTIFICATION_CREATED",
 }
