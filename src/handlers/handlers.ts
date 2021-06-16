@@ -34,10 +34,14 @@ export async function handleMessage(message: IEventMessage): Promise<boolean> {
       break;
     case eventType.collectionCreated:
       res = await createCollection(data);
-      if(!res) {
+      if (!res) {
         break;
       }
-      res = await addUserToCollection(data);
+      res = await addUserToCollection({
+        user: { uuid: data.collection.users[0] },
+        collection: { uuid: data.collection.uuid, organisationId: data.collection.organisationId }
+      });
+      break;
     case eventType.userInternalCollectionJoined:
       res = await addUserToCollection(data);
       break;
