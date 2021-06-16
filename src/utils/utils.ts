@@ -35,3 +35,8 @@ export const findObject = (obj: Record<string, any>, key: string, value: any) =>
   recursiveSearch(obj);
   return result;
 }
+
+export function removeHTMLTags(str: string) {
+  if (!str) return str;
+  return str.toString().replace(/(<([^>]+)>)/ig, "");
+}

@@ -20,6 +20,10 @@ interface ICollection {
   organisationId: string;
 }
 
+function initialiseUsers(): { tableName: string; dynamoDb: DocumentClient } {
+  const tableName = "bkmark-users-projection";
+  return initialiseDb(tableName);
+}
 
 function initialiseSearch(): { tableName: string; dynamoDb: DocumentClient } {
   const tableName = "bkmark-search-projection";
@@ -64,6 +68,34 @@ async function getAllExistingCollections() {
 }
 
 async function getAllExistingUsers(): Promise<IUser[]> {
+  const { tableName, dynamoDb } = initialiseUsers();
+  let lastEvaluatedKey: DocumentClient.Key | undefined = undefined;
+  let users: IUser[] = [];
+  do {
+    const params = {
+      TableName: tableName,
+      ExclusiveStartKey: lastEvaluatedKey,
+    };
+
+    try {
+      const records: DocumentClient.ScanOutput = await dynamoDb.scan(params).promise();
+      if (!records.Items) {
+        return [];
+      }
+      const result = records.Items as IUser[];
+      users = [...users, ...result];
+      lastEvaluatedKey = records.LastEvaluatedKey;
+    } catch (error) {
+      logger.error("There was a problem getting all the user from dynamoDB", {
+        error,
+      });
+      throw error;
+    }
+  } while (lastEvaluatedKey !== undefined);
+  return users;
+}
+
+async function getAllExistingUsersFromSearch(): Promise<IUser[]> {
   const { tableName, dynamoDb } = initialiseSearch();
   let lastEvaluatedKey: DocumentClient.Key | undefined = undefined;
   let users: IUser[] = [];
@@ -88,7 +120,7 @@ async function getAllExistingUsers(): Promise<IUser[]> {
       users = [...users, ...result];
       lastEvaluatedKey = records.LastEvaluatedKey;
     } catch (e) {
-      logger.error("Error getting the users", { params, error: e });
+      logger.error("Error getting the users from search", { params, error: e });
       throw e;
     }
   } while (lastEvaluatedKey !== undefined);
@@ -98,6 +130,7 @@ async function getAllExistingUsers(): Promise<IUser[]> {
 async function seed() {
   const collections = await getAllExistingCollections();
   const users = await getAllExistingUsers();
+  const searchUsers = await getAllExistingUsersFromSearch();
 
   const collectionsPromises = collections.map(async col => {
     logger.info("Processing the collection", { uuid: col.uuid });
@@ -106,12 +139,13 @@ async function seed() {
 
   const usersPromises = users.map(async user => {
     logger.info("Processing the user", { uuid: user.uuid });
+    const searchUser = searchUsers.find(u => u.uuid === user.uuid);
     const u = {
       uuid: user.uuid,
       organisations: user.organisations,
       forename: user.forename,
       surname: user.surname,
-      collections: user.collections.map(c => { return { uuid: c.uuid, organisationId: c.ownerId } })
+      collections: searchUser?.collections.map(c => { return { uuid: c.uuid, organisationId: c.ownerId } }) || [],
     }
     await database.createUser(u);
   });

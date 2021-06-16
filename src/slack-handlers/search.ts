@@ -108,7 +108,7 @@ export async function handleSearch(command: SlashCommand, client: any) {
             "type": "section",
             "text": {
               "type": "mrkdwn",
-              "text": `👋 Hi <@${slackId}> Please use a valid /bkmark slash command, [search].`
+              "text": `👋 Hi <@${slackId}> please use a valid /bkmark slash command, [search].`
             },
           },
         ],

@@ -169,9 +169,10 @@ slackApp.command('/bkmark', async ({ command, ack, say, client }) => {
   }
 });
 
-slackApp.action('log_in_button_click', async ({ body, ack }) => {
+slackApp.action('log_in_button_click', async ({ body, ack, respond }) => {
   try {
     await handleLoginButtonClick(body, ack);
+    await respond({ delete_original: true });
   } catch (error) {
     logger.error("There was an issue handling the log_in_button_click action", { body, error });
   }
