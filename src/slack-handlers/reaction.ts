@@ -4,6 +4,9 @@ import { WebClient } from "@slack/web-api"
 import database from "../services/database/database";
 import { IBookmarkCreateRequestSent } from "../models/internal-events";
 import internalStore, { InternalEventTypes } from "../services/internal-store";
+import { promisify } from "util";
+
+const wait = promisify(setTimeout);
 
 export async function handleReaction(urls: string[], slackId: string, channel: string, client: WebClient) {
   logger.info("Processing the emoji reaction", { urls, slackId, channel });
@@ -113,6 +116,7 @@ export async function handleReaction(urls: string[], slackId: string, channel: s
 
     try {
       await bookmarkService.requestBookmarkCreate(requestData);
+      await wait(2);
       const e: IBookmarkCreateRequestSent = {
         uuid: `organisation#${collection.organisationId}#collection#${collection.uuid}`,
         data: { requestData },
