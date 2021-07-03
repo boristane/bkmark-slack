@@ -5,6 +5,7 @@ import database from "../services/database/database";
 import { IBookmarkCreateRequestSent } from "../models/internal-events";
 import internalStore, { InternalEventTypes } from "../services/internal-store";
 import { promisify } from "util";
+import { ISlackUser } from "../models/slack-user";
 
 const wait = promisify(setTimeout);
 
@@ -14,14 +15,23 @@ export async function handleReaction(urls: string[], slackId: string, channel: s
   const { team } = await client.team.info() as any;
   let slackUser = await database.getSlackUser(team.id, slackId);
 
-  if (!slackUser) {
-    slackUser = {
-      slackId: slackId,
-      teamId: team.id,
-      domain: team.domain,
-    };
+  if (!slackUser || !slackUser.userId) {
+    if (!slackUser) {
+      const slackUser: ISlackUser = {
+        slackId,
+        teamId: team.id,
+        domain: team.domain,
+      };
 
-    await database.createSlackUser(slackUser);
+      await database.createSlackUser(slackUser);
+      const e = {
+        uuid: slackId,
+        data: { slackUser },
+        type: InternalEventTypes.slackUserCreated,
+      }
+      internalStore.createInternalEvent(e);
+    }
+
     const loginUrl = `https://app.${process.env.DOMAIN}/login?slackTeam=${team.id}&slackUser=${slackId}`;
     await client.chat.postEphemeral({
       channel,

@@ -147,7 +147,7 @@ slackApp.event<'reaction_added'>('reaction_added', async ({ event, client, conte
 
     logger.info("Here is the message", message);
 
-    const matches = findObject(message.blocks, "type", "link").map(a => a.url);
+    const matches = findObject(message.blocks!, "type", "link").map(a => a.url);
     logger.info("Here are the matches", matches);
     if (!matches || !matches.length) {
       return;

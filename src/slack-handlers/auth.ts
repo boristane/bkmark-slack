@@ -1,7 +1,6 @@
 import { AppHomeOpenedEvent, SlackAction } from "@slack/bolt";
 import logger from "logger";
 import { ISlackUser } from "../models/slack-user";
-import bookmarks from "../services/bookmarks";
 import database from "../services/database/database";
 import internalStore, { InternalEventTypes } from "../services/internal-store";
 
@@ -30,20 +29,22 @@ export async function handleAppHomeOpened(event: AppHomeOpenedEvent, client: any
         await internalStore.createInternalEvent(e);
       }
 
-      const slackUser: ISlackUser = {
-        slackId,
-        teamId: team.id,
-        domain: team.domain,
-      };
+      if (!user) {
+        const slackUser: ISlackUser = {
+          slackId,
+          teamId: team.id,
+          domain: team.domain,
+        };
 
-      await database.createSlackUser(slackUser);
-
-      const e = {
-        uuid: slackId,
-        data: { slackUser },
-        type: InternalEventTypes.slackUserCreated,
+        await database.createSlackUser(slackUser);
+        const e = {
+          uuid: slackId,
+          data: { slackUser },
+          type: InternalEventTypes.slackUserCreated,
+        }
+        internalStore.createInternalEvent(e);
       }
-      internalStore.createInternalEvent(e);
+
 
       const loginUrl = `https://app.${process.env.DOMAIN}/login?slackTeam=${team.id}&slackUser=${slackId}`;
 
